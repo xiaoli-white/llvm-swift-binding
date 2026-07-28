@@ -22,4 +22,13 @@ final class Function: Value {
         guard let block = LLVMGetEntryBasicBlock(ref) else { return nil }
         return BasicBlock(ref: block, function: self, module: module!)
     }
+
+    func setSubprogram(_ sp: Metadata) {
+        LLVMSetSubprogram(ref, sp.ref)
+    }
+
+    var subprogram: Metadata? {
+        guard let sp = LLVMGetSubprogram(ref) else { return nil }
+        return Metadata(ref: sp)
+    }
 }

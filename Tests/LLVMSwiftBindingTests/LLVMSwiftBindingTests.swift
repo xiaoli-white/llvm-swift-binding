@@ -311,4 +311,69 @@ func jitAddFunction() throws {
     let result = try jit.runFunction("main")
     #expect(result == 42)
 }
+
+@Test func debugInfo() throws {
+    let ctx = Context()
+    let module = Module(name: "debug", in: ctx)
+    let i32 = ctx.int32
+
+    let di = DIBuilder(module: module)
+    let file = di.createFile("test.c", directory: "/tmp")
+    let cu = di.createCompileUnit(
+        language: LLVMDWARFSourceLanguageC,
+        file: file,
+        producer: "test",
+        isOptimized: false
+    )
+
+    let intType = di.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
+    let subType = di.createSubroutineType(file: file, returnTypes: [intType])
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    let subprogram = di.createFunction(
+        scope: cu,
+        name: "main",
+        file: file,
+        line: 1,
+        subroutineType: subType,
+        isLocalToUnit: true,
+        isDefinition: true,
+        scopeLine: 1
+    )
+    main.setSubprogram(subprogram)
+
+    di.finalize()
+
+    let ir = module.irString
+    #expect(ir.contains("!DICompileUnit"))
+    #expect(ir.contains("!DIFile"))
+    #expect(ir.contains("!DISubprogram"))
+}
+
+@Test func passManagerAnalysis() throws {
+    let ctx = Context()
+    let module = Module(name: "pm", in: ctx)
+    let i32 = ctx.int32
+    let funcType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: funcType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    TargetMachine.initializeAllTargets()
+    let triple = TargetMachine.defaultTriple
+    let target = try Target.fromTriple(triple)
+    let tm = TargetMachine(target: target, triple: triple, cpu: TargetMachine.hostCPUName)
+
+    let pm = PassManager()
+    pm.addAnalysisPasses(of: tm)
+    pm.run(on: module)
+}
 }
