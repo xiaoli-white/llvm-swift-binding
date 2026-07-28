@@ -1,6 +1,13 @@
 import cLLVM
 import LLVMShim
 
+private let _initializeTargets: Void = {
+    shim_initialize_all_targets()
+    shim_initialize_all_target_infos()
+    shim_initialize_all_target_mcs()
+    shim_initialize_all_asm_printers()
+}()
+
 final class Target {
     let ref: LLVMTargetRef
 
@@ -71,10 +78,7 @@ final class TargetMachine {
     }
 
     static func initializeAllTargets() {
-        shim_initialize_all_targets()
-        shim_initialize_all_target_infos()
-        shim_initialize_all_target_mcs()
-        shim_initialize_all_asm_printers()
+        _ = _initializeTargets
     }
 
     func emitToFile(module: Module,

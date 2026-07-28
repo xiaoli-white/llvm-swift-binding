@@ -54,6 +54,29 @@ final class Context {
         return wrapConstant(ref) as! ConstantInt
     }
 
+    func constantFP(_ value: Double, type: FloatType) -> ConstantFP {
+        let ref = LLVMConstReal(type.ref, value)!
+        return wrapConstant(ref) as! ConstantFP
+    }
+
+    func structType(elementTypes: [Type], isPacked: Bool = false) -> StructType {
+        var members: [LLVMTypeRef?] = elementTypes.map { $0.ref }
+        let ref = members.withUnsafeMutableBufferPointer { buffer in
+            LLVMStructTypeInContext(self.ref, buffer.baseAddress, UInt32(elementTypes.count), isPacked ? 1 : 0)
+        }
+        return wrapType(ref!) as! StructType
+    }
+
+    func arrayType(elementType: Type, count: UInt32) -> ArrayType {
+        let ref = LLVMArrayType(elementType.ref, count)
+        return wrapType(ref!) as! ArrayType
+    }
+
+    func vectorType(elementType: Type, count: UInt32) -> VectorType {
+        let ref = LLVMVectorType(elementType.ref, count)
+        return wrapType(ref!) as! VectorType
+    }
+
     func wrapType(_ ref: LLVMTypeRef) -> Type {
         if let cached = typeCache[ref] {
             return cached
