@@ -16,3 +16,7 @@ void shim_initialize_all_target_mcs(void) {
 void shim_initialize_all_asm_printers(void) {
     LLVMInitializeAllAsmPrinters();
 }
+
+void shim_initialize_native_target(void) {
+    LLVMInitializeNativeTarget();
+}

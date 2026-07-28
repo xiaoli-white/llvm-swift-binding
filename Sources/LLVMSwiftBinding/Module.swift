@@ -9,6 +9,11 @@ final class Module {
         self.context = context
     }
 
+    init(ref: LLVMModuleRef, context: Context) {
+        self.ref = ref
+        self.context = context
+    }
+
     deinit {
         LLVMDisposeModule(ref)
     }

@@ -12,3 +12,10 @@ func errorMessage(from pointer: UnsafeMutablePointer<CChar>?) -> String {
     LLVMDisposeMessage(ptr)
     return str
 }
+
+func errorMessage(from error: LLVMErrorRef) -> String {
+    let ptr = LLVMGetErrorMessage(error)
+    let str = String(cString: ptr!)
+    LLVMDisposeErrorMessage(ptr)
+    return str
+}

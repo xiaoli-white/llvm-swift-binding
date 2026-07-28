@@ -59,6 +59,11 @@ final class Context {
         return wrapConstant(ref) as! ConstantFP
     }
 
+    func pointerType(addressSpace: UInt32 = 0) -> PointerType {
+        let ref = LLVMPointerTypeInContext(self.ref, addressSpace)
+        return wrapType(ref!) as! PointerType
+    }
+
     func constantNull(_ type: Type) -> Constant {
         let ref = LLVMConstNull(type.ref)!
         return wrapConstant(ref)
