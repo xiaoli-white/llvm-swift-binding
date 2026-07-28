@@ -1,6 +1,4 @@
 // swift-tools-version: 6.3
-// The swift-tools-version declares the minimum version of Swift required to build this package.
-
 import PackageDescription
 
 let package = Package(
@@ -12,8 +10,17 @@ let package = Package(
         ),
     ],
     targets: [
+        .systemLibrary(
+            name: "cLLVM",
+            path: "Sources/cLLVM"
+        ),
         .target(
-            name: "LLVMSwiftBinding"
+            name: "LLVMShim",
+            dependencies: ["cLLVM"]
+        ),
+        .target(
+            name: "LLVMSwiftBinding",
+            dependencies: ["cLLVM", "LLVMShim"]
         ),
         .testTarget(
             name: "LLVMSwiftBindingTests",

@@ -1,8 +1,18 @@
 import Testing
-@testable import llvm_swift_binding
+@testable import LLVMSwiftBinding
 
-@Test func example() async throws {
-    // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-    // Swift Testing Documentation
-    // https://swiftpackageindex.com/swiftlang/swift-testing/documentation
+@Test func helloWorldIR() {
+    let ctx = Context()
+    let module = Module(name: "hello", in: ctx)
+    let i32 = ctx.int32
+    let funcType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: funcType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    let ir = module.irString
+    #expect(ir.contains("define i32 @main()"))
+    #expect(ir.contains("ret i32 42"))
 }

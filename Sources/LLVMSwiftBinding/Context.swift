@@ -1,0 +1,112 @@
+import cLLVM
+
+final class Context {
+    let ref: LLVMContextRef
+    private var typeCache: [OpaquePointer: Type] = [:]
+    private var constantCache: [OpaquePointer: Constant] = [:]
+
+    init() {
+        self.ref = LLVMContextCreate()
+    }
+
+    deinit {
+        LLVMContextDispose(ref)
+    }
+
+    var int1: IntegerType { intType(width: 1) }
+    var int8: IntegerType { intType(width: 8) }
+    var int16: IntegerType { intType(width: 16) }
+    var int32: IntegerType { intType(width: 32) }
+    var int64: IntegerType { intType(width: 64) }
+    var int128: IntegerType { intType(width: 128) }
+
+    func intType(width: UInt32) -> IntegerType {
+        wrapType(LLVMIntTypeInContext(ref, width)!) as! IntegerType
+    }
+
+    var void: VoidType {
+        wrapType(LLVMVoidTypeInContext(ref)!) as! VoidType
+    }
+
+    var float: FloatType {
+        wrapType(LLVMFloatTypeInContext(ref)!) as! FloatType
+    }
+
+    var double: FloatType {
+        wrapType(LLVMDoubleTypeInContext(ref)!) as! FloatType
+    }
+
+    func functionType(returnType: Type, parameterTypes: [Type] = [], isVariadic: Bool = false) -> FunctionType {
+        var params: [LLVMTypeRef?] = parameterTypes.map { $0.ref }
+        let ref = params.withUnsafeMutableBufferPointer { buffer in
+            LLVMFunctionType(returnType.ref, buffer.baseAddress, UInt32(parameterTypes.count), isVariadic ? 1 : 0)
+        }
+        return wrapType(ref!) as! FunctionType
+    }
+
+    func constantInt(_ value: UInt64, type: IntegerType) -> ConstantInt {
+        let ref = LLVMConstInt(type.ref, value, 0)!
+        return wrapConstant(ref) as! ConstantInt
+    }
+
+    func constantInt(signed value: Int64, type: IntegerType) -> ConstantInt {
+        let ref = LLVMConstInt(type.ref, UInt64(bitPattern: value), 1)!
+        return wrapConstant(ref) as! ConstantInt
+    }
+
+    func wrapType(_ ref: LLVMTypeRef) -> Type {
+        if let cached = typeCache[ref] {
+            return cached
+        }
+        let kind = LLVMGetTypeKind(ref)
+        let type: Type
+        switch kind {
+        case LLVMVoidTypeKind:
+            type = VoidType(ref: ref, context: self)
+        case LLVMHalfTypeKind, LLVMFloatTypeKind, LLVMDoubleTypeKind,
+             LLVMX86_FP80TypeKind, LLVMFP128TypeKind, LLVMPPC_FP128TypeKind,
+             LLVMBFloatTypeKind:
+            type = FloatType(ref: ref, context: self)
+        case LLVMIntegerTypeKind:
+            type = IntegerType(ref: ref, context: self)
+        case LLVMFunctionTypeKind:
+            type = FunctionType(ref: ref, context: self)
+        case LLVMStructTypeKind:
+            type = StructType(ref: ref, context: self)
+        case LLVMArrayTypeKind:
+            type = ArrayType(ref: ref, context: self)
+        case LLVMPointerTypeKind:
+            type = PointerType(ref: ref, context: self)
+        case LLVMVectorTypeKind, LLVMScalableVectorTypeKind:
+            type = VectorType(ref: ref, context: self)
+        case LLVMLabelTypeKind:
+            type = LabelType(ref: ref, context: self)
+        case LLVMTokenTypeKind:
+            type = TokenType(ref: ref, context: self)
+        case LLVMMetadataTypeKind:
+            type = MetadataType(ref: ref, context: self)
+        case LLVMTargetExtTypeKind:
+            type = TargetExtType(ref: ref, context: self)
+        default:
+            type = Type(ref: ref, context: self)
+        }
+        typeCache[ref] = type
+        return type
+    }
+
+    func wrapConstant(_ ref: LLVMValueRef) -> Constant {
+        if let cached = constantCache[ref] {
+            return cached
+        }
+        let constant: Constant
+        if LLVMIsAConstantInt(ref) != nil {
+            constant = ConstantInt(ref: ref, context: self)
+        } else if LLVMIsAConstantFP(ref) != nil {
+            constant = ConstantFP(ref: ref, context: self)
+        } else {
+            constant = Constant(ref: ref, context: self)
+        }
+        constantCache[ref] = constant
+        return constant
+    }
+}
