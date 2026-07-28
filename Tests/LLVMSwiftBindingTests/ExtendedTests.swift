@@ -121,3 +121,52 @@ import cLLVM
     runProcess.waitUntilExit()
     #expect(runProcess.terminationStatus == 42)
 }
+
+@Test func globalVariable() throws {
+    let ctx = Context()
+    let module = Module(name: "global", in: ctx)
+    let i32 = ctx.int32
+
+    let answer = module.addGlobal("answer", type: i32)
+    answer.initializer = ctx.constantInt(42, type: i32)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let val = builder.buildLoad(i32, answer, name: "val")
+    builder.buildRet(val)
+
+    let ir = module.irString
+    #expect(ir.contains("@answer = global i32 42"))
+    #expect(ir.contains("load i32"))
+
+    TargetMachine.initializeAllTargets()
+    let triple = TargetMachine.defaultTriple
+    let target = try Target.fromTriple(triple)
+    let tm = TargetMachine(target: target, triple: triple, cpu: TargetMachine.hostCPUName)
+
+    let tmpDir = NSTemporaryDirectory()
+    let objPath = "\(tmpDir)global_\(UUID().uuidString).o"
+    let exePath = "\(tmpDir)global_\(UUID().uuidString)"
+
+    try tm.emitToFile(module: module, objPath)
+    defer {
+        try? FileManager.default.removeItem(atPath: objPath)
+        try? FileManager.default.removeItem(atPath: exePath)
+    }
+
+    let linkProcess = Process()
+    linkProcess.executableURL = URL(fileURLWithPath: "/usr/bin/cc")
+    linkProcess.arguments = [objPath, "-o", exePath]
+    try linkProcess.run()
+    linkProcess.waitUntilExit()
+    #expect(linkProcess.terminationStatus == 0)
+
+    let runProcess = Process()
+    runProcess.executableURL = URL(fileURLWithPath: exePath)
+    try runProcess.run()
+    runProcess.waitUntilExit()
+    #expect(runProcess.terminationStatus == 42)
+}

@@ -14,7 +14,11 @@ final class StoreInst: Instruction {}
 
 final class BranchInst: Instruction {}
 
-final class SwitchInst: Instruction {}
+final class SwitchInst: Instruction {
+    func addCase(_ on: Value, _ dest: BasicBlock) {
+        LLVMAddCase(ref, on.ref, dest.ref)
+    }
+}
 
 final class ICmpInst: Instruction {}
 

@@ -21,3 +21,9 @@ final class ConstantFP: Constant {
         LLVMConstRealGetDouble(ref, nil)
     }
 }
+
+final class UndefValue: Constant {}
+
+final class ConstantArray: Constant {}
+
+final class ConstantStruct: Constant {}

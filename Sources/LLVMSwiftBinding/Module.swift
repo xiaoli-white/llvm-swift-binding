@@ -28,6 +28,11 @@ final class Module {
         return Function(ref: funcRef, module: self)
     }
 
+    func addGlobal(_ name: String, type: Type) -> GlobalVariable {
+        let ref = LLVMAddGlobal(self.ref, type.ref, name)!
+        return GlobalVariable(ref: ref, module: self)
+    }
+
     var target: String {
         get { String(cString: LLVMGetTarget(ref)!) }
         set { LLVMSetTarget(ref, newValue) }

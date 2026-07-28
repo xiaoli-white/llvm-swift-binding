@@ -59,6 +59,32 @@ final class Context {
         return wrapConstant(ref) as! ConstantFP
     }
 
+    func constantNull(_ type: Type) -> Constant {
+        let ref = LLVMConstNull(type.ref)!
+        return wrapConstant(ref)
+    }
+
+    func undef(_ type: Type) -> UndefValue {
+        let ref = LLVMGetUndef(type.ref)!
+        return UndefValue(ref: ref, context: self)
+    }
+
+    func constantArray(_ values: [Constant], elementType: Type) -> ConstantArray {
+        var valRefs: [LLVMValueRef?] = values.map { $0.ref }
+        let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstArray2(elementType.ref, buffer.baseAddress, UInt64(values.count))
+        }
+        return ConstantArray(ref: ref!, context: self)
+    }
+
+    func constantStruct(_ values: [Constant], isPacked: Bool = false) -> ConstantStruct {
+        var valRefs: [LLVMValueRef?] = values.map { $0.ref }
+        let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstStructInContext(self.ref, buffer.baseAddress, UInt32(values.count), isPacked ? 1 : 0)
+        }
+        return ConstantStruct(ref: ref!, context: self)
+    }
+
     func structType(elementTypes: [Type], isPacked: Bool = false) -> StructType {
         var members: [LLVMTypeRef?] = elementTypes.map { $0.ref }
         let ref = members.withUnsafeMutableBufferPointer { buffer in

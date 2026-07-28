@@ -247,4 +247,52 @@ final class Builder {
         let inst = LLVMBuildIntToPtr(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
+
+    @discardableResult
+    func buildFPToUI(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildFPToUI(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildFPToSI(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildFPToSI(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildUIToFP(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildUIToFP(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildSIToFP(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildSIToFP(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildFPTrunc(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildFPTrunc(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildFPExt(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildFPExt(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildAddrSpaceCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildAddrSpaceCast(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildSwitch(_ value: Value, default dest: BasicBlock, numCases: UInt32 = 0) -> SwitchInst {
+        let inst = LLVMBuildSwitch(ref, value.ref, dest.ref, numCases)!
+        return SwitchInst(ref: inst, context: context, module: currentModule)
+    }
 }
