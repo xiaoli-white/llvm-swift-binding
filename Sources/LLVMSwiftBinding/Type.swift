@@ -56,6 +56,10 @@ class Type {
         kind == LLVMTargetExtTypeKind
     }
 
+    var contextRef: LLVMContextRef {
+        LLVMGetTypeContext(ref)
+    }
+
     var description: String {
         let ptr = LLVMPrintTypeToString(ref)!
         defer { LLVMDisposeMessage(ptr) }

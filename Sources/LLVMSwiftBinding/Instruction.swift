@@ -126,6 +126,10 @@ class Instruction: Value {
 
     var parentBlock: BasicBlock? {
         guard let blockRef = LLVMGetInstructionParent(ref) else { return nil }
+        return basicBlock(from: blockRef)
+    }
+
+    fileprivate func basicBlock(from blockRef: LLVMBasicBlockRef) -> BasicBlock? {
         guard let fnRef = LLVMGetBasicBlockParent(blockRef) else { return nil }
         let fnModule: Module
         if let module {
@@ -140,6 +144,14 @@ class Instruction: Value {
     func clone() -> Instruction? {
         guard let ref = LLVMInstructionClone(ref) else { return nil }
         return Instruction.wrap(ref, context: context, module: module)
+    }
+
+    func removeFromParent() {
+        LLVMInstructionRemoveFromParent(ref)
+    }
+
+    func eraseFromParent() {
+        LLVMInstructionEraseFromParent(ref)
     }
 }
 
@@ -158,6 +170,25 @@ final class BranchInst: Instruction {}
 final class SwitchInst: Instruction {
     func addCase(_ on: Value, _ dest: BasicBlock) {
         LLVMAddCase(ref, on.ref, dest.ref)
+    }
+
+    var condition: Value? {
+        operand(at: 0)
+    }
+
+    var defaultDestination: BasicBlock? {
+        guard let block = LLVMGetSwitchDefaultDest(ref) else { return nil }
+        return basicBlock(from: block)
+    }
+
+    var caseCount: UInt32 {
+        let successors = LLVMGetNumSuccessors(ref)
+        return successors > 0 ? successors - 1 : 0
+    }
+
+    func caseDestination(at index: UInt32) -> BasicBlock? {
+        guard let block = LLVMGetSuccessor(ref, index + 1) else { return nil }
+        return basicBlock(from: block)
     }
 }
 
@@ -210,6 +241,19 @@ final class PHINode: Instruction {
                 LLVMAddIncoming(ref, valBuf.baseAddress, blkBuf.baseAddress, count)
             }
         }
+    }
+
+    var incomingCount: UInt32 {
+        LLVMCountIncoming(ref)
+    }
+
+    func incomingValue(at index: UInt32) -> Value {
+        Value(ref: LLVMGetIncomingValue(ref, index)!, context: context, module: module)
+    }
+
+    func incomingBlock(at index: UInt32) -> BasicBlock? {
+        guard let block = LLVMGetIncomingBlock(ref, index) else { return nil }
+        return basicBlock(from: block)
     }
 }
 

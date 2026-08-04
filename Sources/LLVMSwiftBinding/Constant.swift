@@ -34,6 +34,8 @@ final class PoisonValue: Constant {}
 
 final class ConstantTokenNone: Constant {}
 
+final class ConstantAggregateZero: Constant {}
+
 final class ConstantArray: Constant {}
 
 final class ConstantStruct: Constant {}

@@ -1556,5 +1556,112 @@ func jitAddFunction() throws {
     #expect(file.kind == LLVMDIFileMetadataKind)
     #expect(cu.kind == LLVMDICompileUnitMetadataKind)
 }
+
+@Test func instructionInsertionAndDeletion() throws {
+    let ctx = Context()
+    let module = Module(name: "instinsdel", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let a = builder.buildAlloca(i32, name: "a")
+    let ret = builder.buildRet(ctx.constantInt(0, type: i32))
+
+    builder.positionBefore(ret)
+    let x = builder.buildAdd(main.parameter(at: 0), ctx.constantInt(1, type: i32), name: "x")
+    #expect(entry.instructions.count == 3)
+    #expect(entry.instructions[1].ref == x.ref)
+
+    x.removeFromParent()
+    #expect(entry.instructions.count == 2)
+
+    a.eraseFromParent()
+    #expect(entry.instructions.count == 1)
+    #expect(entry.firstInstruction?.ref == ret.ref)
+    try module.verify()
+}
+
+@Test func switchAndPhiQueries() throws {
+    let ctx = Context()
+    let module = Module(name: "switchphi", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let defBlock = main.appendBasicBlock("def")
+    let case0 = main.appendBasicBlock("case0")
+    let case1 = main.appendBasicBlock("case1")
+    let merge = main.appendBasicBlock("merge")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let sw = builder.buildSwitch(main.parameter(at: 0), default: defBlock, numCases: 2)
+    sw.addCase(ctx.constantInt(0, type: i32), case0)
+    sw.addCase(ctx.constantInt(1, type: i32), case1)
+
+    builder.positionAtEnd(of: defBlock)
+    builder.buildBr(merge)
+    builder.positionAtEnd(of: case0)
+    builder.buildBr(merge)
+    builder.positionAtEnd(of: case1)
+    builder.buildBr(merge)
+
+    builder.positionAtEnd(of: merge)
+    let phi = builder.buildPhi(i32, name: "p")
+    phi.addIncoming(ctx.constantInt(1, type: i32), from: case0)
+    phi.addIncoming(ctx.constantInt(2, type: i32), from: case1)
+    phi.addIncoming(ctx.constantInt(3, type: i32), from: defBlock)
+    builder.buildRet(phi)
+
+    #expect(sw.caseCount == 2)
+    #expect(sw.condition?.ref == main.parameter(at: 0).ref)
+    #expect(sw.defaultDestination?.ref == defBlock.ref)
+    #expect(sw.caseDestination(at: 0)?.ref == case0.ref)
+    #expect(sw.caseDestination(at: 1)?.ref == case1.ref)
+
+    #expect(phi.incomingCount == 3)
+    #expect(phi.incomingValue(at: 0).ref == ctx.constantInt(1, type: i32).ref)
+    #expect(phi.incomingBlock(at: 0)?.ref == case0.ref)
+    #expect(phi.incomingBlock(at: 2)?.ref == defBlock.ref)
+    try module.verify()
+}
+
+@Test func builderOverflowAndFNeg() throws {
+    let ctx = Context()
+    let module = Module(name: "overflow", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, ctx.double])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let p = main.parameter(at: 0)
+    builder.buildNSWAdd(p, p, name: "nsw")
+    builder.buildNUWSub(p, p, name: "nuw")
+    builder.buildExactSDiv(p, ctx.constantInt(2, type: i32), name: "exact")
+    builder.buildNSWNeg(p, name: "nswneg")
+    builder.buildFNeg(main.parameter(at: 1), name: "fneg")
+    builder.buildRet(p)
+
+    let ir = module.irString
+    #expect(ir.contains("nsw"))
+    #expect(ir.contains("nuw"))
+    #expect(ir.contains("exact"))
+    #expect(ir.contains("fneg"))
+    try module.verify()
+}
+
+@Test func constantAggregateZeroAndTypeContext() throws {
+    let ctx = Context()
+    let module = try Module.parseIR(
+        "@g = global [2 x i32] zeroinitializer\ndefine i32 @main() { ret i32 0 }",
+        in: ctx
+    )
+    let gv = module.global(named: "g")
+    #expect(gv?.initializer is ConstantAggregateZero)
+    #expect(ctx.int32.contextRef == ctx.ref)
+    #expect(ctx.pointerType().contextRef == ctx.ref)
+}
 }
 

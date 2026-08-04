@@ -19,6 +19,11 @@ final class Builder {
         LLVMPositionBuilderAtEnd(ref, block.ref)
     }
 
+    func positionBefore(_ inst: Instruction) {
+        currentModule = inst.module
+        LLVMPositionBuilderBefore(ref, inst.ref)
+    }
+
     func setCurrentDebugLocation(_ location: Metadata?) {
         LLVMSetCurrentDebugLocation2(ref, location?.ref)
     }
@@ -71,6 +76,66 @@ final class Builder {
     @discardableResult
     func buildSDiv(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
         let inst = LLVMBuildSDiv(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNSWAdd(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNSWAdd(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNUWAdd(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNUWAdd(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNSWSub(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNSWSub(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNUWSub(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNUWSub(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNSWMul(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNSWMul(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNUWMul(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNUWMul(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildExactUDiv(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildExactUDiv(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildExactSDiv(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildExactSDiv(ref, lhs.ref, rhs.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildNSWNeg(_ value: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildNSWNeg(ref, value.ref, name)!
+        return BinaryOperator(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildFNeg(_ value: Value, name: String = "") -> BinaryOperator {
+        let inst = LLVMBuildFNeg(ref, value.ref, name)!
         return BinaryOperator(ref: inst, context: context, module: currentModule)
     }
 

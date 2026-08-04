@@ -370,6 +370,8 @@ final class Context {
             constant = PoisonValue(ref: ref, context: self)
         } else if LLVMIsAConstantTokenNone(ref) != nil {
             constant = ConstantTokenNone(ref: ref, context: self)
+        } else if LLVMIsAConstantAggregateZero(ref) != nil {
+            constant = ConstantAggregateZero(ref: ref, context: self)
         } else if LLVMIsAConstantDataArray(ref) != nil {
             constant = ConstantDataArray(ref: ref, context: self)
         } else if LLVMIsAConstantExpr(ref) != nil {
