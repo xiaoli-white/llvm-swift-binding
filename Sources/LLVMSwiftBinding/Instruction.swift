@@ -137,8 +137,18 @@ final class CallInst: Instruction {
     }
 
     var callConvention: LLVMCallConv {
-        get { LLVMCallConv(rawValue: LLVMGetInstructionCallConv(ref)) ?? LLVMCCallConv }
+        get { LLVMCallConv(rawValue: LLVMGetInstructionCallConv(ref)) }
         set { LLVMSetInstructionCallConv(ref, newValue.rawValue) }
+    }
+
+    var calledValue: Value? {
+        guard let ref = LLVMGetCalledValue(ref) else { return nil }
+        return Value(ref: ref, context: context, module: module)
+    }
+
+    var calledFunctionType: Type? {
+        guard let ref = LLVMGetCalledFunctionType(ref) else { return nil }
+        return context.wrapType(ref)
     }
 }
 

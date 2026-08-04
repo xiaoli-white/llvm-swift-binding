@@ -1179,5 +1179,132 @@ func jitAddFunction() throws {
     #expect(param.uses.count == 1)
     #expect(param.uses[0].ref == sum.ref)
 }
+
+@Test func invokeLandingPadResume() throws {
+    let ctx = Context()
+    let module = Module(name: "invoke", in: ctx)
+    let i32 = ctx.int32
+    let voidFn = ctx.functionType(returnType: ctx.void)
+    let callee = module.addFunction("callee", type: voidFn)
+    let person = module.addFunction("person", type: voidFn)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    main.personality = person
+    let entry = main.appendBasicBlock("entry")
+    let normal = main.appendBasicBlock("normal")
+    let lpadBlock = main.appendBasicBlock("lpad")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let inv = builder.buildInvoke(callee, [], then: normal, catch: lpadBlock)
+    builder.positionAtEnd(of: normal)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+    builder.positionAtEnd(of: lpadBlock)
+    let lpType = ctx.structType(elementTypes: [ctx.pointerType(), i32])
+    let lp = builder.buildLandingPad(lpType, personality: person, numClauses: 1, name: "lp")
+    lp.addClause(ctx.constantPointerNull(ctx.pointerType()))
+    lp.isCleanup = true
+    builder.buildResume(lp)
+
+    #expect(inv is InvokeInst)
+    #expect(lp is LandingPadInst)
+    #expect(lp.clauseCount == 1)
+    #expect(lp.isCleanup)
+    #expect(main.personality?.ref == person.ref)
+    let ir = module.irString
+    #expect(ir.contains("invoke"))
+    #expect(ir.contains("landingpad"))
+    #expect(ir.contains("resume"))
+    try module.verify()
+}
+
+@Test func callSiteAttributesAndCalledValue() throws {
+    let ctx = Context()
+    let module = Module(name: "callattr2", in: ctx)
+    let i32 = ctx.int32
+    let calleeType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let callee = module.addFunction("callee", type: calleeType)
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let call = builder.buildCall(callee, [main.parameter(at: 0)], name: "c")
+    builder.buildRet(call)
+
+    #expect(call.calledValue?.ref == callee.ref)
+    #expect(call.calledFunctionType?.ref == calleeType.ref)
+
+    let attr = Attribute.stringAttribute("noinline", in: ctx)
+    call.addCallSiteAttribute(attr, at: AttributeIndex.functionIndex)
+    let attrs = call.callSiteAttributes(at: AttributeIndex.functionIndex)
+    #expect(attrs.count == 1)
+    #expect(attrs[0].isString)
+    let ir = module.irString
+    #expect(ir.contains("noinline"))
+    try module.verify()
+}
+
+@Test func globalVariableAttributes() throws {
+    let ctx = Context()
+    let module = Module(name: "gvattrs", in: ctx)
+    let i32 = ctx.int32
+    let gv = module.addGlobal("g", type: i32)
+
+    gv.initializer = ctx.constantInt(7, type: i32)
+    #expect((gv.initializer as? ConstantInt)?.unsignedValue == 7)
+    gv.section = ".data"
+    #expect(gv.section == ".data")
+    gv.isThreadLocal = true
+    #expect(gv.isThreadLocal)
+    gv.unnamedAddress = LLVMGlobalUnnamedAddr
+    #expect(gv.unnamedAddress == LLVMGlobalUnnamedAddr)
+
+    let ir = module.irString
+    #expect(ir.contains("thread_local"))
+    #expect(ir.contains(".data"))
+    #expect(ir.contains("unnamed_addr"))
+    try module.verify()
+}
+
+@Test func moduleMetadata() throws {
+    let ctx = Context()
+    let module = Module(name: "orig", in: ctx)
+
+    #expect(module.identifier == "orig")
+    module.identifier = "renamed"
+    #expect(module.identifier == "renamed")
+    module.sourceFileName = "src.c"
+    #expect(module.sourceFileName == "src.c")
+    module.inlineAsm = "nop"
+    #expect(module.inlineAsm.contains("nop"))
+
+    let ir = module.irString
+    #expect(ir.contains("module asm"))
+    #expect(ir.contains("nop"))
+}
+
+@Test func instructionTraversal() throws {
+    let ctx = Context()
+    let module = Module(name: "insts", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let param = main.parameter(at: 0)
+    let alloca = builder.buildAlloca(i32, name: "a")
+    let add = builder.buildAdd(param, ctx.constantInt(1, type: i32), name: "s")
+    let ret = builder.buildRet(add)
+
+    #expect(entry.firstInstruction?.ref == alloca.ref)
+    #expect(entry.lastInstruction?.ref == ret.ref)
+    let insts = entry.instructions
+    #expect(insts.count == 3)
+    #expect(insts[0].ref == alloca.ref)
+    #expect(insts[1].ref == add.ref)
+    #expect(insts[2].ref == ret.ref)
+}
 }
 

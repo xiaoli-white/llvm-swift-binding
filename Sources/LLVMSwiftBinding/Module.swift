@@ -136,6 +136,48 @@ final class Module {
         set { LLVMSetTarget(ref, newValue) }
     }
 
+    var identifier: String {
+        get {
+            var length: Int = 0
+            guard let ptr = LLVMGetModuleIdentifier(ref, &length) else { return "" }
+            let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+            return String(decoding: bytes, as: UTF8.self)
+        }
+        set {
+            newValue.withCString { ptr in
+                LLVMSetModuleIdentifier(ref, ptr, newValue.utf8.count)
+            }
+        }
+    }
+
+    var sourceFileName: String {
+        get {
+            var length: Int = 0
+            guard let ptr = LLVMGetSourceFileName(ref, &length) else { return "" }
+            let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+            return String(decoding: bytes, as: UTF8.self)
+        }
+        set {
+            newValue.withCString { ptr in
+                LLVMSetSourceFileName(ref, ptr, newValue.utf8.count)
+            }
+        }
+    }
+
+    var inlineAsm: String {
+        get {
+            var length: Int = 0
+            guard let ptr = LLVMGetModuleInlineAsm(ref, &length) else { return "" }
+            let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+            return String(decoding: bytes, as: UTF8.self)
+        }
+        set {
+            newValue.withCString { ptr in
+                LLVMSetModuleInlineAsm2(ref, ptr, newValue.utf8.count)
+            }
+        }
+    }
+
     func addNamedMetadataOperand(_ name: String, _ node: Value) {
         name.withCString { namePtr in
             LLVMAddNamedMetadataOperand(ref, namePtr, node.ref)

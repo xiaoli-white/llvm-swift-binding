@@ -5,10 +5,10 @@ final class GlobalVariable: Value {
         super.init(ref: ref, context: module.context, module: module)
     }
 
-    var initializer: Value? {
+    var initializer: Constant? {
         get {
             guard let val = LLVMGetInitializer(ref) else { return nil }
-            return Value(ref: val, context: context, module: module)
+            return context.wrapConstant(val)
         }
         set {
             LLVMSetInitializer(ref, newValue?.ref)
@@ -20,7 +20,21 @@ final class GlobalVariable: Value {
     }
 
     var isThreadLocal: Bool {
-        LLVMIsThreadLocal(ref) != 0
+        get { LLVMIsThreadLocal(ref) != 0 }
+        set { LLVMSetThreadLocal(ref, newValue ? 1 : 0) }
+    }
+
+    var section: String {
+        get {
+            guard let ptr = LLVMGetSection(ref) else { return "" }
+            return String(cString: ptr)
+        }
+        set { LLVMSetSection(ref, newValue) }
+    }
+
+    var unnamedAddress: LLVMUnnamedAddr {
+        get { LLVMGetUnnamedAddress(ref) }
+        set { LLVMSetUnnamedAddress(ref, newValue) }
     }
 
     var linkage: LLVMLinkage {
