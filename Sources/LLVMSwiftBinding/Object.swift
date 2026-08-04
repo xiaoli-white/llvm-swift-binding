@@ -1,23 +1,36 @@
 import cLLVM
 
-struct SectionInfo {
-    let name: String
-    let size: UInt64
-    let contents: [UInt8]
-    let address: UInt64
+public struct SectionInfo {
+    public let name: String
+    public let size: UInt64
+    public let contents: [UInt8]
+    public let address: UInt64
+
+    public init(name: String, size: UInt64, contents: [UInt8], address: UInt64) {
+        self.name = name
+        self.size = size
+        self.contents = contents
+        self.address = address
+    }
 }
 
-struct SymbolInfo {
-    let name: String
-    let address: UInt64
-    let size: UInt64
+public struct SymbolInfo {
+    public let name: String
+    public let address: UInt64
+    public let size: UInt64
+
+    public init(name: String, address: UInt64, size: UInt64) {
+        self.name = name
+        self.address = address
+        self.size = size
+    }
 }
 
-final class Binary {
-    let ref: LLVMBinaryRef
-    let buffer: MemoryBuffer
+public final class Binary {
+    public let ref: LLVMBinaryRef
+    public let buffer: MemoryBuffer
 
-    init(buffer: MemoryBuffer, context: Context? = nil) throws {
+    public init(buffer: MemoryBuffer, context: Context? = nil) throws {
         var errMsg: UnsafeMutablePointer<CChar>? = nil
         let ref = LLVMCreateBinary(buffer.ref, context?.ref, &errMsg)
         guard let ref else {
@@ -32,11 +45,11 @@ final class Binary {
         LLVMDisposeBinary(ref)
     }
 
-    var type: LLVMBinaryType {
+    public var type: LLVMBinaryType {
         LLVMBinaryGetType(ref)
     }
 
-    var typeDescription: String {
+    public var typeDescription: String {
         switch type {
         case LLVMBinaryTypeArchive: "archive"
         case LLVMBinaryTypeMachOUniversalBinary: "Mach-O universal binary"
@@ -59,7 +72,7 @@ final class Binary {
         }
     }
 
-    func sections() -> [SectionInfo] {
+    public func sections() -> [SectionInfo] {
         var result: [SectionInfo] = []
         guard let first = LLVMObjectFileCopySectionIterator(ref) else { return [] }
         let iterator = first
@@ -87,7 +100,7 @@ final class Binary {
         return result
     }
 
-    func symbols() -> [SymbolInfo] {
+    public func symbols() -> [SymbolInfo] {
         var result: [SymbolInfo] = []
         guard let first = LLVMObjectFileCopySymbolIterator(ref) else { return [] }
         let iterator = first

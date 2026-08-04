@@ -1,9 +1,9 @@
 import cLLVM
 
-final class GenericValue {
-    let ref: LLVMGenericValueRef
+public final class GenericValue {
+    public let ref: LLVMGenericValueRef
 
-    init(ref: LLVMGenericValueRef) {
+    public init(ref: LLVMGenericValueRef) {
         self.ref = ref
     }
 
@@ -11,40 +11,40 @@ final class GenericValue {
         LLVMDisposeGenericValue(ref)
     }
 
-    static func ofInt(_ value: UInt64, type: Type, isSigned: Bool = false) -> GenericValue {
+    public static func ofInt(_ value: UInt64, type: Type, isSigned: Bool = false) -> GenericValue {
         GenericValue(ref: LLVMCreateGenericValueOfInt(type.ref, value, isSigned ? 1 : 0))
     }
 
-    static func ofPointer(_ pointer: UnsafeMutableRawPointer?) -> GenericValue {
+    public static func ofPointer(_ pointer: UnsafeMutableRawPointer?) -> GenericValue {
         GenericValue(ref: LLVMCreateGenericValueOfPointer(pointer))
     }
 
-    static func ofFloat(_ value: Double, type: Type) -> GenericValue {
+    public static func ofFloat(_ value: Double, type: Type) -> GenericValue {
         GenericValue(ref: LLVMCreateGenericValueOfFloat(type.ref, value))
     }
 
-    var intWidth: UInt32 {
+    public var intWidth: UInt32 {
         LLVMGenericValueIntWidth(ref)
     }
 
-    func toInt(isSigned: Bool) -> UInt64 {
+    public func toInt(isSigned: Bool) -> UInt64 {
         LLVMGenericValueToInt(ref, isSigned ? 1 : 0)
     }
 
-    var pointer: UnsafeMutableRawPointer? {
+    public var pointer: UnsafeMutableRawPointer? {
         LLVMGenericValueToPointer(ref)
     }
 
-    func toFloat(type: Type) -> Double {
+    public func toFloat(type: Type) -> Double {
         LLVMGenericValueToFloat(type.ref, ref)
     }
 }
 
-final class ExecutionEngine {
-    let ref: LLVMExecutionEngineRef
+public final class ExecutionEngine {
+    public let ref: LLVMExecutionEngineRef
     private let module: Module?
 
-    init(module: Module, optLevel: UInt32 = 0) throws {
+    public init(module: Module, optLevel: UInt32 = 0) throws {
         var options = LLVMMCJITCompilerOptions()
         LLVMInitializeMCJITCompilerOptions(&options, MemoryLayout<LLVMMCJITCompilerOptions>.size)
         options.OptLevel = optLevel
@@ -66,7 +66,7 @@ final class ExecutionEngine {
         LLVMDisposeExecutionEngine(ref)
     }
 
-    func runFunction(_ function: Function, args: [GenericValue] = []) -> GenericValue? {
+    public func runFunction(_ function: Function, args: [GenericValue] = []) -> GenericValue? {
         var argRefs: [LLVMGenericValueRef?] = args.map { $0.ref }
         let result = argRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMRunFunction(ref, function.ref, UInt32(args.count), buffer.baseAddress)
@@ -75,22 +75,22 @@ final class ExecutionEngine {
         return GenericValue(ref: result)
     }
 
-    func functionAddress(_ name: String) -> UInt64 {
+    public func functionAddress(_ name: String) -> UInt64 {
         name.withCString { namePtr in
             LLVMGetFunctionAddress(ref, namePtr)
         }
     }
 
-    func pointerToGlobal(_ global: GlobalVariable) -> UnsafeMutableRawPointer? {
+    public func pointerToGlobal(_ global: GlobalVariable) -> UnsafeMutableRawPointer? {
         LLVMGetPointerToGlobal(ref, global.ref)
     }
 
-    func addModule(_ module: Module) {
+    public func addModule(_ module: Module) {
         LLVMAddModule(ref, module.ref)
         module.ownsRef = false
     }
 
-    func findFunction(_ name: String) -> Function? {
+    public func findFunction(_ name: String) -> Function? {
         var outFn: LLVMValueRef? = nil
         let result = name.withCString { namePtr -> Int32 in
             LLVMFindFunction(ref, namePtr, &outFn)
@@ -99,15 +99,15 @@ final class ExecutionEngine {
         return Function(ref: outFn, module: module)
     }
 
-    func runStaticConstructors() {
+    public func runStaticConstructors() {
         LLVMRunStaticConstructors(ref)
     }
 
-    func runStaticDestructors() {
+    public func runStaticDestructors() {
         LLVMRunStaticDestructors(ref)
     }
 
-    func removeModule(_ module: Module) throws -> Module {
+    public func removeModule(_ module: Module) throws -> Module {
         var outMod: LLVMModuleRef? = nil
         var errMsg: UnsafeMutablePointer<CChar>? = nil
         let result = LLVMRemoveModule(ref, module.ref, &outMod, &errMsg)
@@ -118,32 +118,32 @@ final class ExecutionEngine {
         return Module(ref: outMod!, context: module.context)
     }
 
-    func addGlobalMapping(_ global: GlobalVariable, to pointer: UnsafeMutableRawPointer) {
+    public func addGlobalMapping(_ global: GlobalVariable, to pointer: UnsafeMutableRawPointer) {
         LLVMAddGlobalMapping(ref, global.ref, pointer)
     }
 
-    func globalValueAddress(_ name: String) -> UInt64 {
+    public func globalValueAddress(_ name: String) -> UInt64 {
         name.withCString { namePtr in
             LLVMGetGlobalValueAddress(ref, namePtr)
         }
     }
 
-    var targetData: DataLayout {
+    public var targetData: DataLayout {
         DataLayout(ref: LLVMGetExecutionEngineTargetData(ref), owns: false)
     }
 
-    var targetMachine: TargetMachine {
+    public var targetMachine: TargetMachine {
         TargetMachine(ref: LLVMGetExecutionEngineTargetMachine(ref))
     }
 
-    var lastErrorMessage: String? {
+    public var lastErrorMessage: String? {
         var errMsg: UnsafeMutablePointer<CChar>? = nil
         let result = LLVMExecutionEngineGetErrMsg(ref, &errMsg)
         guard result != 0, let errMsg else { return nil }
         return String(cString: errMsg)
     }
 
-    func runFunctionAsMain(_ function: Function, args: [String] = [], env: [String] = []) -> Int32 {
+    public func runFunctionAsMain(_ function: Function, args: [String] = [], env: [String] = []) -> Int32 {
         let argv: [UnsafeMutablePointer<CChar>?] = args.map(cString)
         let envp: [UnsafeMutablePointer<CChar>?] = env.map(cString)
         defer {
@@ -164,7 +164,7 @@ final class ExecutionEngine {
         return result
     }
 
-    func freeMachineCode(for function: Function) {
+    public func freeMachineCode(for function: Function) {
         LLVMFreeMachineCodeForFunction(ref, function.ref)
     }
 }

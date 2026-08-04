@@ -1,9 +1,9 @@
 import cLLVM
 
-final class LLJIT {
-    let ref: LLVMOrcLLJITRef
+public final class LLJIT {
+    public let ref: LLVMOrcLLJITRef
 
-    init() throws {
+    public init() throws {
         TargetMachine.initializeAllTargets()
         let builder = LLVMOrcCreateLLJITBuilder()
         var jit: LLVMOrcLLJITRef? = nil
@@ -22,15 +22,15 @@ final class LLJIT {
         }
     }
 
-    var dataLayout: String {
+    public var dataLayout: String {
         String(cString: LLVMOrcLLJITGetDataLayoutStr(ref))
     }
 
-    var triple: String {
+    public var triple: String {
         String(cString: LLVMOrcLLJITGetTripleString(ref))
     }
 
-    func addModule(_ module: Module) throws {
+    public func addModule(_ module: Module) throws {
         let tsm = LLVMOrcCreateNewThreadSafeModule(module.ref, module.context.ref)
         defer { LLVMOrcDisposeThreadSafeModule(tsm) }
         let dylib = LLVMOrcLLJITGetMainJITDylib(ref)
@@ -41,7 +41,7 @@ final class LLJIT {
         }
     }
 
-    func lookup(_ name: String) throws -> UInt64 {
+    public func lookup(_ name: String) throws -> UInt64 {
         var address = LLVMOrcExecutorAddress(0)
         let err = name.withCString { namePtr in
             LLVMOrcLLJITLookup(ref, &address, namePtr)
@@ -53,7 +53,7 @@ final class LLJIT {
         return UInt64(address)
     }
 
-    func runFunction(_ name: String) throws -> Int32 {
+    public func runFunction(_ name: String) throws -> Int32 {
         let address = try lookup(name)
         let fn = unsafeBitCast(UInt(address), to: (@convention(c) () -> Int32).self)
         return fn()

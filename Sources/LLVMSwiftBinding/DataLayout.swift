@@ -1,10 +1,10 @@
 import cLLVM
 
-final class DataLayout {
-    let ref: LLVMTargetDataRef
+public final class DataLayout {
+    public let ref: LLVMTargetDataRef
     private var owns: Bool
 
-    init(string: String) {
+    public init(string: String) {
         let ref = string.withCString { stringPtr in
             LLVMCreateTargetData(stringPtr)
         }
@@ -12,7 +12,7 @@ final class DataLayout {
         self.owns = true
     }
 
-    init(ref: LLVMTargetDataRef, owns: Bool) {
+    public init(ref: LLVMTargetDataRef, owns: Bool) {
         self.ref = ref
         self.owns = owns
     }
@@ -23,71 +23,71 @@ final class DataLayout {
         }
     }
 
-    var string: String {
+    public var string: String {
         let ptr = LLVMCopyStringRepOfTargetData(ref)!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    var byteOrder: LLVMByteOrdering {
+    public var byteOrder: LLVMByteOrdering {
         LLVMByteOrder(ref)
     }
 
-    var pointerSize: UInt32 {
+    public var pointerSize: UInt32 {
         LLVMPointerSize(ref)
     }
 
-    func pointerSize(addressSpace: UInt32) -> UInt32 {
+    public func pointerSize(addressSpace: UInt32) -> UInt32 {
         LLVMPointerSizeForAS(ref, addressSpace)
     }
 
-    func intPtrType(in context: Context) -> Type {
+    public func intPtrType(in context: Context) -> Type {
         context.wrapType(LLVMIntPtrTypeInContext(context.ref, ref)!)
     }
 
-    func intPtrType(addressSpace: UInt32, in context: Context) -> Type {
+    public func intPtrType(addressSpace: UInt32, in context: Context) -> Type {
         context.wrapType(LLVMIntPtrTypeForASInContext(context.ref, ref, addressSpace)!)
     }
 
-    func sizeOfTypeInBits(_ type: Type) -> UInt64 {
+    public func sizeOfTypeInBits(_ type: Type) -> UInt64 {
         LLVMSizeOfTypeInBits(ref, type.ref)
     }
 
-    func storeSizeOfType(_ type: Type) -> UInt64 {
+    public func storeSizeOfType(_ type: Type) -> UInt64 {
         LLVMStoreSizeOfType(ref, type.ref)
     }
 
-    func abiSizeOfType(_ type: Type) -> UInt64 {
+    public func abiSizeOfType(_ type: Type) -> UInt64 {
         LLVMABISizeOfType(ref, type.ref)
     }
 
-    func abiAlignmentOfType(_ type: Type) -> UInt32 {
+    public func abiAlignmentOfType(_ type: Type) -> UInt32 {
         LLVMABIAlignmentOfType(ref, type.ref)
     }
 
-    func callFrameAlignmentOfType(_ type: Type) -> UInt32 {
+    public func callFrameAlignmentOfType(_ type: Type) -> UInt32 {
         LLVMCallFrameAlignmentOfType(ref, type.ref)
     }
 
-    func preferredAlignmentOfType(_ type: Type) -> UInt32 {
+    public func preferredAlignmentOfType(_ type: Type) -> UInt32 {
         LLVMPreferredAlignmentOfType(ref, type.ref)
     }
 
-    func preferredAlignmentOfGlobal(_ global: GlobalVariable) -> UInt32 {
+    public func preferredAlignmentOfGlobal(_ global: GlobalVariable) -> UInt32 {
         LLVMPreferredAlignmentOfGlobal(ref, global.ref)
     }
 
-    func element(atOffset offset: UInt64, in structType: StructType) -> UInt32 {
+    public func element(atOffset offset: UInt64, in structType: StructType) -> UInt32 {
         LLVMElementAtOffset(ref, structType.ref, offset)
     }
 
-    func offsetOfElement(_ index: UInt32, in structType: StructType) -> UInt64 {
+    public func offsetOfElement(_ index: UInt32, in structType: StructType) -> UInt64 {
         LLVMOffsetOfElement(ref, structType.ref, index)
     }
 }
 
-extension Module {
-    var dataLayout: DataLayout {
+public extension Module {
+    public var dataLayout: DataLayout {
         get {
             DataLayout(ref: LLVMGetModuleDataLayout(ref), owns: false)
         }
@@ -97,8 +97,8 @@ extension Module {
     }
 }
 
-extension TargetMachine {
-    var dataLayout: DataLayout {
+public extension TargetMachine {
+    public var dataLayout: DataLayout {
         DataLayout(ref: LLVMCreateTargetDataLayout(ref), owns: true)
     }
 }

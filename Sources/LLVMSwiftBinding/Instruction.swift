@@ -1,12 +1,17 @@
 import cLLVM
 
-struct OperandBundle {
-    let tag: String
-    let args: [Value]
+public struct OperandBundle {
+    public let tag: String
+    public let args: [Value]
+
+    public init(tag: String, args: [Value]) {
+        self.tag = tag
+        self.args = args
+    }
 }
 
-class Instruction: Value {
-    static func wrap(_ ref: LLVMValueRef, context: Context, module: Module?) -> Instruction {
+public class Instruction: Value {
+    public static func wrap(_ ref: LLVMValueRef, context: Context, module: Module?) -> Instruction {
         let inst: Instruction
         switch LLVMGetInstructionOpcode(ref) {
         case LLVMRet:
@@ -81,7 +86,7 @@ class Instruction: Value {
         return inst
     }
 
-    var operandBundles: [OperandBundle] {
+    public var operandBundles: [OperandBundle] {
         let opcode = LLVMGetInstructionOpcode(ref)
         guard opcode == LLVMCall || opcode == LLVMInvoke || opcode == LLVMCallBr else { return [] }
         let count = LLVMGetNumOperandBundles(ref)
@@ -102,29 +107,29 @@ class Instruction: Value {
         return result
     }
 
-    var debugLocLine: UInt32 {
+    public var debugLocLine: UInt32 {
         LLVMGetDebugLocLine(ref)
     }
 
-    var debugLocColumn: UInt32 {
+    public var debugLocColumn: UInt32 {
         LLVMGetDebugLocColumn(ref)
     }
 
-    var debugLocFilename: String? {
+    public var debugLocFilename: String? {
         var length: UInt32 = 0
         guard let ptr = LLVMGetDebugLocFilename(ref, &length) else { return nil }
         let bytes = UnsafeBufferPointer(start: ptr, count: Int(length)).map { UInt8(bitPattern: $0) }
         return String(decoding: bytes, as: UTF8.self)
     }
 
-    var debugLocDirectory: String? {
+    public var debugLocDirectory: String? {
         var length: UInt32 = 0
         guard let ptr = LLVMGetDebugLocDirectory(ref, &length) else { return nil }
         let bytes = UnsafeBufferPointer(start: ptr, count: Int(length)).map { UInt8(bitPattern: $0) }
         return String(decoding: bytes, as: UTF8.self)
     }
 
-    var parentBlock: BasicBlock? {
+    public var parentBlock: BasicBlock? {
         guard let blockRef = LLVMGetInstructionParent(ref) else { return nil }
         return basicBlock(from: blockRef)
     }
@@ -141,118 +146,118 @@ class Instruction: Value {
         return BasicBlock(ref: blockRef, function: Function(ref: fnRef, module: fnModule), module: fnModule)
     }
 
-    func clone() -> Instruction? {
+    public func clone() -> Instruction? {
         guard let ref = LLVMInstructionClone(ref) else { return nil }
         return Instruction.wrap(ref, context: context, module: module)
     }
 
-    func removeFromParent() {
+    public func removeFromParent() {
         LLVMInstructionRemoveFromParent(ref)
     }
 
-    func eraseFromParent() {
+    public func eraseFromParent() {
         LLVMInstructionEraseFromParent(ref)
     }
 }
 
-final class ReturnInst: Instruction {}
+public final class ReturnInst: Instruction {}
 
-final class BinaryOperator: Instruction {}
+public final class BinaryOperator: Instruction {}
 
-final class AllocaInst: Instruction {}
+public final class AllocaInst: Instruction {}
 
-final class LoadInst: Instruction {
-    var isVolatile: Bool {
+public final class LoadInst: Instruction {
+    public var isVolatile: Bool {
         get { LLVMGetVolatile(ref) != 0 }
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    var ordering: LLVMAtomicOrdering {
+    public var ordering: LLVMAtomicOrdering {
         get { LLVMGetOrdering(ref) }
         set { LLVMSetOrdering(ref, newValue) }
     }
 }
 
-final class StoreInst: Instruction {
-    var isVolatile: Bool {
+public final class StoreInst: Instruction {
+    public var isVolatile: Bool {
         get { LLVMGetVolatile(ref) != 0 }
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    var ordering: LLVMAtomicOrdering {
+    public var ordering: LLVMAtomicOrdering {
         get { LLVMGetOrdering(ref) }
         set { LLVMSetOrdering(ref, newValue) }
     }
 }
 
-final class BranchInst: Instruction {}
+public final class BranchInst: Instruction {}
 
-final class SwitchInst: Instruction {
-    func addCase(_ on: Value, _ dest: BasicBlock) {
+public final class SwitchInst: Instruction {
+    public func addCase(_ on: Value, _ dest: BasicBlock) {
         LLVMAddCase(ref, on.ref, dest.ref)
     }
 
-    var condition: Value? {
+    public var condition: Value? {
         operand(at: 0)
     }
 
-    var defaultDestination: BasicBlock? {
+    public var defaultDestination: BasicBlock? {
         guard let block = LLVMGetSwitchDefaultDest(ref) else { return nil }
         return basicBlock(from: block)
     }
 
-    var caseCount: UInt32 {
+    public var caseCount: UInt32 {
         let successors = LLVMGetNumSuccessors(ref)
         return successors > 0 ? successors - 1 : 0
     }
 
-    func caseDestination(at index: UInt32) -> BasicBlock? {
+    public func caseDestination(at index: UInt32) -> BasicBlock? {
         guard let block = LLVMGetSuccessor(ref, index + 1) else { return nil }
         return basicBlock(from: block)
     }
 }
 
-final class ICmpInst: Instruction {}
+public final class ICmpInst: Instruction {}
 
-final class FCmpInst: Instruction {}
+public final class FCmpInst: Instruction {}
 
-final class CallInst: Instruction {
-    var isTailCall: Bool {
+public final class CallInst: Instruction {
+    public var isTailCall: Bool {
         get { LLVMIsTailCall(ref) != 0 }
         set { LLVMSetTailCall(ref, newValue ? 1 : 0) }
     }
 
-    var tailCallKind: LLVMTailCallKind {
+    public var tailCallKind: LLVMTailCallKind {
         get { LLVMGetTailCallKind(ref) }
         set { LLVMSetTailCallKind(ref, newValue) }
     }
 
-    var callConvention: LLVMCallConv {
+    public var callConvention: LLVMCallConv {
         get { LLVMCallConv(rawValue: LLVMGetInstructionCallConv(ref)) }
         set { LLVMSetInstructionCallConv(ref, newValue.rawValue) }
     }
 
-    var calledValue: Value? {
+    public var calledValue: Value? {
         guard let ref = LLVMGetCalledValue(ref) else { return nil }
         return Value(ref: ref, context: context, module: module)
     }
 
-    var calledFunctionType: Type? {
+    public var calledFunctionType: Type? {
         guard let ref = LLVMGetCalledFunctionType(ref) else { return nil }
         return context.wrapType(ref)
     }
 }
 
-final class CallBrInst: Instruction {}
+public final class CallBrInst: Instruction {}
 
-final class PHINode: Instruction {
-    func addIncoming(_ value: Value, from block: BasicBlock) {
+public final class PHINode: Instruction {
+    public func addIncoming(_ value: Value, from block: BasicBlock) {
         var val: LLVMValueRef? = value.ref
         var blk: LLVMBasicBlockRef? = block.ref
         LLVMAddIncoming(ref, &val, &blk, 1)
     }
 
-    func addIncoming(_ values: [(value: Value, block: BasicBlock)]) {
+    public func addIncoming(_ values: [(value: Value, block: BasicBlock)]) {
         let count = UInt32(values.count)
         var vals: [LLVMValueRef?] = values.map { $0.value.ref }
         var blks: [LLVMBasicBlockRef?] = values.map { $0.block.ref }
@@ -263,111 +268,111 @@ final class PHINode: Instruction {
         }
     }
 
-    var incomingCount: UInt32 {
+    public var incomingCount: UInt32 {
         LLVMCountIncoming(ref)
     }
 
-    func incomingValue(at index: UInt32) -> Value {
+    public func incomingValue(at index: UInt32) -> Value {
         Value(ref: LLVMGetIncomingValue(ref, index)!, context: context, module: module)
     }
 
-    func incomingBlock(at index: UInt32) -> BasicBlock? {
+    public func incomingBlock(at index: UInt32) -> BasicBlock? {
         guard let block = LLVMGetIncomingBlock(ref, index) else { return nil }
         return basicBlock(from: block)
     }
 }
 
-final class SelectInst: Instruction {}
+public final class SelectInst: Instruction {}
 
-final class GetElementPtrInst: Instruction {}
+public final class GetElementPtrInst: Instruction {}
 
-final class CastInst: Instruction {}
+public final class CastInst: Instruction {}
 
-final class UnreachableInst: Instruction {}
+public final class UnreachableInst: Instruction {}
 
-final class FenceInst: Instruction {}
+public final class FenceInst: Instruction {}
 
-final class AtomicRMWInst: Instruction {
-    var isVolatile: Bool {
+public final class AtomicRMWInst: Instruction {
+    public var isVolatile: Bool {
         get { LLVMGetVolatile(ref) != 0 }
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    var ordering: LLVMAtomicOrdering {
+    public var ordering: LLVMAtomicOrdering {
         get { LLVMGetOrdering(ref) }
         set { LLVMSetOrdering(ref, newValue) }
     }
 
-    var binOp: LLVMAtomicRMWBinOp {
+    public var binOp: LLVMAtomicRMWBinOp {
         get { LLVMGetAtomicRMWBinOp(ref) }
         set { LLVMSetAtomicRMWBinOp(ref, newValue) }
     }
 }
 
-final class AtomicCmpXchgInst: Instruction {
-    var isVolatile: Bool {
+public final class AtomicCmpXchgInst: Instruction {
+    public var isVolatile: Bool {
         get { LLVMGetVolatile(ref) != 0 }
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 }
 
-final class ExtractValueInst: Instruction {}
+public final class ExtractValueInst: Instruction {}
 
-final class InsertValueInst: Instruction {}
+public final class InsertValueInst: Instruction {}
 
-final class ExtractElementInst: Instruction {}
+public final class ExtractElementInst: Instruction {}
 
-final class InsertElementInst: Instruction {}
+public final class InsertElementInst: Instruction {}
 
-final class ShuffleVectorInst: Instruction {}
+public final class ShuffleVectorInst: Instruction {}
 
-final class FreezeInst: Instruction {}
+public final class FreezeInst: Instruction {}
 
-final class VAArgInst: Instruction {}
+public final class VAArgInst: Instruction {}
 
-final class ResumeInst: Instruction {}
+public final class ResumeInst: Instruction {}
 
-final class InvokeInst: Instruction {
-    func addClause(_ clause: Value) {
+public final class InvokeInst: Instruction {
+    public func addClause(_ clause: Value) {
         LLVMAddClause(ref, clause.ref)
     }
 }
 
-final class LandingPadInst: Instruction {
-    var isCleanup: Bool {
+public final class LandingPadInst: Instruction {
+    public var isCleanup: Bool {
         get { LLVMIsCleanup(ref) != 0 }
         set { LLVMSetCleanup(ref, newValue ? 1 : 0) }
     }
 
-    var clauseCount: UInt32 {
+    public var clauseCount: UInt32 {
         LLVMGetNumClauses(ref)
     }
 
-    func clause(at index: UInt32) -> Value {
+    public func clause(at index: UInt32) -> Value {
         Value(ref: LLVMGetClause(ref, index)!, context: context, module: module)
     }
 
-    func addClause(_ clause: Value) {
+    public func addClause(_ clause: Value) {
         LLVMAddClause(ref, clause.ref)
     }
 }
 
-final class CatchPadInst: Instruction {}
+public final class CatchPadInst: Instruction {}
 
-final class CleanupPadInst: Instruction {}
+public final class CleanupPadInst: Instruction {}
 
-final class IndirectBrInst: Instruction {
-    func addDestination(_ dest: BasicBlock) {
+public final class IndirectBrInst: Instruction {
+    public func addDestination(_ dest: BasicBlock) {
         LLVMAddDestination(ref, dest.ref)
     }
 }
 
-final class CleanupRetInst: Instruction {}
+public final class CleanupRetInst: Instruction {}
 
-final class CatchRetInst: Instruction {}
+public final class CatchRetInst: Instruction {}
 
-final class CatchSwitchInst: Instruction {
-    func addHandler(_ handler: BasicBlock) {
+public final class CatchSwitchInst: Instruction {
+    public func addHandler(_ handler: BasicBlock) {
         LLVMAddHandler(ref, handler.ref)
     }
 }

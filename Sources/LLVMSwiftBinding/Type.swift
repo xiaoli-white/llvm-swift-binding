@@ -1,27 +1,27 @@
 import cLLVM
 
-class Type {
-    let ref: LLVMTypeRef
-    let context: Context
+public class Type {
+    public let ref: LLVMTypeRef
+    public let context: Context
 
-    init(ref: LLVMTypeRef, context: Context) {
+    public init(ref: LLVMTypeRef, context: Context) {
         self.ref = ref
         self.context = context
     }
 
-    var kind: LLVMTypeKind {
+    public var kind: LLVMTypeKind {
         LLVMGetTypeKind(ref)
     }
 
-    var isVoid: Bool {
+    public var isVoid: Bool {
         kind == LLVMVoidTypeKind
     }
 
-    var isInteger: Bool {
+    public var isInteger: Bool {
         kind == LLVMIntegerTypeKind
     }
 
-    var isFloat: Bool {
+    public var isFloat: Bool {
         switch kind {
         case LLVMHalfTypeKind, LLVMFloatTypeKind, LLVMDoubleTypeKind,
              LLVMX86_FP80TypeKind, LLVMFP128TypeKind, LLVMPPC_FP128TypeKind,
@@ -32,61 +32,61 @@ class Type {
         }
     }
 
-    var isFunction: Bool {
+    public var isFunction: Bool {
         kind == LLVMFunctionTypeKind
     }
 
-    var isStruct: Bool {
+    public var isStruct: Bool {
         kind == LLVMStructTypeKind
     }
 
-    var isArray: Bool {
+    public var isArray: Bool {
         kind == LLVMArrayTypeKind
     }
 
-    var isPointer: Bool {
+    public var isPointer: Bool {
         kind == LLVMPointerTypeKind
     }
 
-    var isVector: Bool {
+    public var isVector: Bool {
         kind == LLVMVectorTypeKind || kind == LLVMScalableVectorTypeKind
     }
 
-    var isTargetExt: Bool {
+    public var isTargetExt: Bool {
         kind == LLVMTargetExtTypeKind
     }
 
-    var contextRef: LLVMContextRef {
+    public var contextRef: LLVMContextRef {
         LLVMGetTypeContext(ref)
     }
 
-    var description: String {
+    public var description: String {
         let ptr = LLVMPrintTypeToString(ref)!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 }
 
-final class VoidType: Type {}
+public final class VoidType: Type {}
 
-final class IntegerType: Type {
-    var width: UInt32 {
+public final class IntegerType: Type {
+    public var width: UInt32 {
         LLVMGetIntTypeWidth(ref)
     }
 }
 
-final class FloatType: Type {}
+public final class FloatType: Type {}
 
-final class FunctionType: Type {
-    var returnType: Type {
+public final class FunctionType: Type {
+    public var returnType: Type {
         context.wrapType(LLVMGetReturnType(ref)!)
     }
 
-    var parameterCount: UInt32 {
+    public var parameterCount: UInt32 {
         LLVMCountParamTypes(ref)
     }
 
-    var parameterTypes: [Type] {
+    public var parameterTypes: [Type] {
         let count = Int(parameterCount)
         guard count > 0 else { return [] }
         var types = [LLVMTypeRef?](repeating: nil, count: count)
@@ -96,27 +96,27 @@ final class FunctionType: Type {
         return types.map { context.wrapType($0!) }
     }
 
-    var isVariadic: Bool {
+    public var isVariadic: Bool {
         LLVMIsFunctionVarArg(ref) != 0
     }
 }
 
-final class PointerType: Type {
-    var elementType: Type {
+public final class PointerType: Type {
+    public var elementType: Type {
         context.wrapType(LLVMGetElementType(ref)!)
     }
 
-    var addressSpace: UInt32 {
+    public var addressSpace: UInt32 {
         LLVMGetPointerAddressSpace(ref)
     }
 }
 
-final class StructType: Type {
-    var elementCount: UInt32 {
+public final class StructType: Type {
+    public var elementCount: UInt32 {
         LLVMCountStructElementTypes(ref)
     }
 
-    var elementTypes: [Type] {
+    public var elementTypes: [Type] {
         let count = Int(elementCount)
         guard count > 0 else { return [] }
         var types = [LLVMTypeRef?](repeating: nil, count: count)
@@ -126,75 +126,75 @@ final class StructType: Type {
         return types.map { context.wrapType($0!) }
     }
 
-    func elementType(at index: UInt32) -> Type {
+    public func elementType(at index: UInt32) -> Type {
         context.wrapType(LLVMStructGetTypeAtIndex(ref, index)!)
     }
 
-    var isPacked: Bool {
+    public var isPacked: Bool {
         LLVMIsPackedStruct(ref) != 0
     }
 
-    var isOpaque: Bool {
+    public var isOpaque: Bool {
         LLVMIsOpaqueStruct(ref) != 0
     }
 
-    var isLiteral: Bool {
+    public var isLiteral: Bool {
         LLVMIsLiteralStruct(ref) != 0
     }
 
-    var name: String? {
+    public var name: String? {
         guard let ptr = LLVMGetStructName(ref) else { return nil }
         return String(cString: ptr)
     }
 }
 
-final class ArrayType: Type {
-    var elementType: Type {
+public final class ArrayType: Type {
+    public var elementType: Type {
         context.wrapType(LLVMGetElementType(ref)!)
     }
 
-    var elementCount: UInt64 {
+    public var elementCount: UInt64 {
         LLVMGetArrayLength2(ref)
     }
 }
 
-final class VectorType: Type {
-    var elementType: Type {
+public final class VectorType: Type {
+    public var elementType: Type {
         context.wrapType(LLVMGetElementType(ref)!)
     }
 
-    var elementCount: UInt32 {
+    public var elementCount: UInt32 {
         LLVMGetVectorSize(ref)
     }
 
-    var isScalable: Bool {
+    public var isScalable: Bool {
         kind == LLVMScalableVectorTypeKind
     }
 }
 
-final class LabelType: Type {}
-final class TokenType: Type {}
-final class MetadataType: Type {}
+public final class LabelType: Type {}
+public final class TokenType: Type {}
+public final class MetadataType: Type {}
 
-final class TargetExtType: Type {
-    var name: String? {
+public final class TargetExtType: Type {
+    public var name: String? {
         guard let ptr = LLVMGetTargetExtTypeName(ref) else { return nil }
         return String(cString: ptr)
     }
 
-    var typeParameterCount: UInt32 {
+    public var typeParameterCount: UInt32 {
         LLVMGetTargetExtTypeNumTypeParams(ref)
     }
 
-    func typeParameter(at index: UInt32) -> Type {
+    public func typeParameter(at index: UInt32) -> Type {
         context.wrapType(LLVMGetTargetExtTypeTypeParam(ref, index)!)
     }
 
-    var intParameterCount: UInt32 {
+    public var intParameterCount: UInt32 {
         LLVMGetTargetExtTypeNumIntParams(ref)
     }
 
-    func intParameter(at index: UInt32) -> UInt32 {
+    public func intParameter(at index: UInt32) -> UInt32 {
         LLVMGetTargetExtTypeIntParam(ref, index)
     }
 }

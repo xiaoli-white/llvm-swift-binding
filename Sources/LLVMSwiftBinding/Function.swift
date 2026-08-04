@@ -1,33 +1,33 @@
 import cLLVM
 
-final class Function: Value {
-    init(ref: LLVMValueRef, module: Module) {
+public final class Function: Value {
+    public init(ref: LLVMValueRef, module: Module) {
         super.init(ref: ref, context: module.context, module: module)
     }
 
-    func appendBasicBlock(_ name: String) -> BasicBlock {
+    public func appendBasicBlock(_ name: String) -> BasicBlock {
         let block = LLVMAppendBasicBlockInContext(context.ref, ref, name)!
         return BasicBlock(ref: block, function: self, module: module!)
     }
 
-    var parameterCount: UInt32 {
+    public var parameterCount: UInt32 {
         LLVMCountParams(ref)
     }
 
-    func parameter(at index: UInt32) -> Argument {
+    public func parameter(at index: UInt32) -> Argument {
         Argument(ref: LLVMGetParam(ref, index)!, function: self, module: module!)
     }
 
-    var entryBlock: BasicBlock? {
+    public var entryBlock: BasicBlock? {
         guard let block = LLVMGetEntryBasicBlock(ref) else { return nil }
         return BasicBlock(ref: block, function: self, module: module!)
     }
 
-    var basicBlockCount: UInt32 {
+    public var basicBlockCount: UInt32 {
         LLVMCountBasicBlocks(ref)
     }
 
-    var basicBlocks: [BasicBlock] {
+    public var basicBlocks: [BasicBlock] {
         var result: [BasicBlock] = []
         guard let first = LLVMGetFirstBasicBlock(ref) else { return [] }
         var current: LLVMBasicBlockRef? = first
@@ -38,7 +38,7 @@ final class Function: Value {
         return result
     }
 
-    var parameters: [Argument] {
+    public var parameters: [Argument] {
         var result: [Argument] = []
         guard let first = LLVMGetFirstParam(ref) else { return [] }
         var current: LLVMValueRef? = first
@@ -49,16 +49,16 @@ final class Function: Value {
         return result
     }
 
-    func setSubprogram(_ sp: Metadata) {
+    public func setSubprogram(_ sp: Metadata) {
         LLVMSetSubprogram(ref, sp.ref)
     }
 
-    var subprogram: Metadata? {
+    public var subprogram: Metadata? {
         guard let sp = LLVMGetSubprogram(ref) else { return nil }
         return Metadata(ref: sp)
     }
 
-    var personality: Function? {
+    public var personality: Function? {
         get {
             guard let fn = LLVMGetPersonalityFn(ref) else { return nil }
             return Function(ref: fn, module: module!)
@@ -68,7 +68,7 @@ final class Function: Value {
         }
     }
 
-    var gc: String? {
+    public var gc: String? {
         get {
             guard let ptr = LLVMGetGC(ref) else { return nil }
             return String(cString: ptr)
@@ -78,7 +78,7 @@ final class Function: Value {
         }
     }
 
-    var linkage: LLVMLinkage {
+    public var linkage: LLVMLinkage {
         get { LLVMGetLinkage(ref) }
         set { LLVMSetLinkage(ref, newValue) }
     }

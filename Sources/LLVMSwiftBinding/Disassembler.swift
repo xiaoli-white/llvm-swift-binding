@@ -1,9 +1,9 @@
 import cLLVM
 
-final class Disassembler {
-    let ref: LLVMDisasmContextRef
+public final class Disassembler {
+    public let ref: LLVMDisasmContextRef
 
-    init?(triple: String, cpu: String = "", features: String = "") {
+    public init?(triple: String, cpu: String = "", features: String = "") {
         let context = triple.withCString { triplePtr in
             cpu.withCString { cpuPtr in
                 features.withCString { featuresPtr in
@@ -20,11 +20,11 @@ final class Disassembler {
     }
 
     @discardableResult
-    func setOptions(_ options: UInt64) -> Bool {
+    public func setOptions(_ options: UInt64) -> Bool {
         LLVMSetDisasmOptions(ref, options) != 0
     }
 
-    func disassemble(_ bytes: [UInt8], pc: UInt64 = 0) -> [String] {
+    public func disassemble(_ bytes: [UInt8], pc: UInt64 = 0) -> [String] {
         var instructions: [String] = []
         var index = 0
         var address = pc

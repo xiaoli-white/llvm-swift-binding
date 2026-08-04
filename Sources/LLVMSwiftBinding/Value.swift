@@ -1,83 +1,83 @@
 import cLLVM
 
-class Value {
-    let ref: LLVMValueRef
-    let context: Context
-    let module: Module?
+public class Value {
+    public let ref: LLVMValueRef
+    public let context: Context
+    public let module: Module?
 
-    init(ref: LLVMValueRef, context: Context, module: Module? = nil) {
+    public init(ref: LLVMValueRef, context: Context, module: Module? = nil) {
         self.ref = ref
         self.context = context
         self.module = module
     }
 
-    var type: Type {
+    public var type: Type {
         context.wrapType(LLVMTypeOf(ref))
     }
 
-    var name: String {
+    public var name: String {
         get { String(cString: LLVMGetValueName(ref)) }
         set { LLVMSetValueName(ref, newValue) }
     }
 
-    var hasMetadata: Bool {
+    public var hasMetadata: Bool {
         LLVMHasMetadata(ref) != 0
     }
 
-    var isConstant: Bool {
+    public var isConstant: Bool {
         LLVMIsConstant(ref) != 0
     }
 
-    var isUndef: Bool {
+    public var isUndef: Bool {
         LLVMIsUndef(ref) != 0
     }
 
-    var isNull: Bool {
+    public var isNull: Bool {
         LLVMIsNull(ref) != 0
     }
 
-    var isPoison: Bool {
+    public var isPoison: Bool {
         LLVMIsPoison(ref) != 0
     }
 
-    var isDeclaration: Bool {
+    public var isDeclaration: Bool {
         LLVMIsDeclaration(ref) != 0
     }
 
-    var visibility: LLVMVisibility {
+    public var visibility: LLVMVisibility {
         get { LLVMGetVisibility(ref) }
         set { LLVMSetVisibility(ref, newValue) }
     }
 
-    var dllStorageClass: LLVMDLLStorageClass {
+    public var dllStorageClass: LLVMDLLStorageClass {
         get { LLVMGetDLLStorageClass(ref) }
         set { LLVMSetDLLStorageClass(ref, newValue) }
     }
 
-    var description: String {
+    public var description: String {
         let ptr = LLVMPrintValueToString(ref)!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    var valueKind: LLVMValueKind {
+    public var valueKind: LLVMValueKind {
         LLVMGetValueKind(ref)
     }
 
-    var numOperands: UInt32 {
+    public var numOperands: UInt32 {
         UInt32(LLVMGetNumOperands(ref))
     }
 
-    func operand(at index: UInt32) -> Value? {
+    public func operand(at index: UInt32) -> Value? {
         guard let ref = LLVMGetOperand(ref, index) else { return nil }
         return Value(ref: ref, context: context, module: module)
     }
 
-    func replaceAllUsesWith(_ newValue: Value) {
+    public func replaceAllUsesWith(_ newValue: Value) {
         LLVMReplaceAllUsesWith(ref, newValue.ref)
     }
 
-    var uses: [Value] {
+    public var uses: [Value] {
         var result: [Value] = []
         guard let first = LLVMGetFirstUse(ref) else { return [] }
         var current: LLVMUseRef? = first
@@ -90,7 +90,7 @@ class Value {
         return result
     }
 
-    var useCount: UInt32 {
+    public var useCount: UInt32 {
         var count: UInt32 = 0
         var current: LLVMUseRef? = LLVMGetFirstUse(ref)
         while let use = current {
@@ -100,24 +100,24 @@ class Value {
         return count
     }
 
-    func operandUser(at index: UInt32) -> Value? {
+    public func operandUser(at index: UInt32) -> Value? {
         guard let useRef = LLVMGetOperandUse(ref, index) else { return nil }
         guard let user = LLVMGetUser(useRef) else { return nil }
         return Value(ref: user, context: context, module: module)
     }
 
-    func setMetadata(kind: UInt32, _ node: Value?) {
+    public func setMetadata(kind: UInt32, _ node: Value?) {
         LLVMSetMetadata(ref, kind, node?.ref)
     }
 
-    func getMetadata(kind: UInt32) -> Value? {
+    public func getMetadata(kind: UInt32) -> Value? {
         guard let ref = LLVMGetMetadata(ref, kind) else { return nil }
         return Value(ref: ref, context: context, module: module)
     }
 }
 
-final class Argument: Value {
-    init(ref: LLVMValueRef, function: Function, module: Module) {
+public final class Argument: Value {
+    public init(ref: LLVMValueRef, function: Function, module: Module) {
         super.init(ref: ref, context: function.context, module: module)
     }
 }

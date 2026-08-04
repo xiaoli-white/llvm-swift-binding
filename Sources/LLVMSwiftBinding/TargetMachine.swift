@@ -10,14 +10,14 @@ private let _initializeTargets: Void = {
     shim_initialize_all_disassemblers()
 }()
 
-final class Target {
-    let ref: LLVMTargetRef
+public final class Target {
+    public let ref: LLVMTargetRef
 
-    init(ref: LLVMTargetRef) {
+    public init(ref: LLVMTargetRef) {
         self.ref = ref
     }
 
-    static func fromTriple(_ triple: String) throws -> Target {
+    public static func fromTriple(_ triple: String) throws -> Target {
         var target: LLVMTargetRef? = nil
         var errMsg: UnsafeMutablePointer<CChar>? = nil
         let result = triple.withCString { triplePtr -> Int32 in
@@ -30,20 +30,20 @@ final class Target {
         return Target(ref: target!)
     }
 
-    var name: String {
+    public var name: String {
         String(cString: LLVMGetTargetName(ref)!)
     }
 
-    var hasTargetMachine: Bool {
+    public var hasTargetMachine: Bool {
         LLVMTargetHasTargetMachine(ref) != 0
     }
 }
 
-final class TargetMachine {
-    let ref: LLVMTargetMachineRef
-    var ownsRef: Bool = true
+public final class TargetMachine {
+    public let ref: LLVMTargetMachineRef
+    public var ownsRef: Bool = true
 
-    init(target: Target,
+    public init(target: Target,
          triple: String,
          cpu: String? = nil,
          features: String? = nil,
@@ -64,7 +64,7 @@ final class TargetMachine {
         }
     }
 
-    init(ref: LLVMTargetMachineRef) {
+    public init(ref: LLVMTargetMachineRef) {
         self.ref = ref
         self.ownsRef = false
     }
@@ -75,45 +75,45 @@ final class TargetMachine {
         }
     }
 
-    static var defaultTriple: String {
+    public static var defaultTriple: String {
         let ptr = LLVMGetDefaultTargetTriple()!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    static var hostCPUName: String {
+    public static var hostCPUName: String {
         let ptr = LLVMGetHostCPUName()!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    static func initializeAllTargets() {
+    public static func initializeAllTargets() {
         _ = _initializeTargets
     }
 
-    var target: Target {
+    public var target: Target {
         Target(ref: LLVMGetTargetMachineTarget(ref))
     }
 
-    var triple: String {
+    public var triple: String {
         let ptr = LLVMGetTargetMachineTriple(ref)!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    var cpu: String {
+    public var cpu: String {
         let ptr = LLVMGetTargetMachineCPU(ref)!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    var featureString: String {
+    public var featureString: String {
         let ptr = LLVMGetTargetMachineFeatureString(ref)!
         defer { LLVMDisposeMessage(ptr) }
         return String(cString: ptr)
     }
 
-    func emitToFile(module: Module,
+    public func emitToFile(module: Module,
                     _ filename: String,
                     fileType: LLVMCodeGenFileType = LLVMObjectFile) throws {
         var errMsg: UnsafeMutablePointer<CChar>? = nil

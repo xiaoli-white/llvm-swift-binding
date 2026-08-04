@@ -1,20 +1,20 @@
 import cLLVM
 
-final class Comdat {
-    let ref: LLVMComdatRef
+public final class Comdat {
+    public let ref: LLVMComdatRef
 
-    init(ref: LLVMComdatRef) {
+    public init(ref: LLVMComdatRef) {
         self.ref = ref
     }
 
-    var selectionKind: LLVMComdatSelectionKind {
+    public var selectionKind: LLVMComdatSelectionKind {
         get { LLVMGetComdatSelectionKind(ref) }
         set { LLVMSetComdatSelectionKind(ref, newValue) }
     }
 }
 
-extension Module {
-    func getOrInsertComdat(_ name: String) -> Comdat {
+public extension Module {
+    public func getOrInsertComdat(_ name: String) -> Comdat {
         let ref = name.withCString { namePtr in
             LLVMGetOrInsertComdat(self.ref, namePtr)
         }
@@ -22,8 +22,8 @@ extension Module {
     }
 }
 
-extension Value {
-    var comdat: Comdat? {
+public extension Value {
+    public var comdat: Comdat? {
         get {
             guard let ref = LLVMGetComdat(ref) else { return nil }
             return Comdat(ref: ref)
