@@ -124,6 +124,91 @@ final class Context {
         return ConstantArray(ref: ref!, context: self)
     }
 
+    func constantDataArray(bytes: [UInt8], type: Type) -> ConstantDataArray {
+        let chars = bytes.map { CChar(bitPattern: $0) }
+        let ref = chars.withUnsafeBufferPointer { buffer in
+            LLVMConstDataArray(type.ref, buffer.baseAddress, buffer.count)
+        }
+        return ConstantDataArray(ref: ref!, context: self)
+    }
+
+    func constantVector(_ values: [Constant]) -> ConstantVector {
+        var valRefs: [LLVMValueRef?] = values.map { $0.ref }
+        let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstVector(buffer.baseAddress, UInt32(values.count))
+        }
+        return ConstantVector(ref: ref!, context: self)
+    }
+
+    func constantInt(ofString str: String, type: IntegerType, radix: UInt8 = 10) -> ConstantInt {
+        let ref = str.withCString { strPtr in
+            LLVMConstIntOfStringAndSize(type.ref, strPtr, UInt32(str.utf8.count), radix)
+        }
+        return wrapConstant(ref!) as! ConstantInt
+    }
+
+    func constantAllOnes(_ type: Type) -> Constant {
+        wrapConstant(LLVMConstAllOnes(type.ref)!)
+    }
+
+    func constantPointerNull(_ type: Type) -> Constant {
+        wrapConstant(LLVMConstPointerNull(type.ref)!)
+    }
+
+    func constantNot(_ value: Constant) -> Constant {
+        wrapConstant(LLVMConstNot(value.ref)!)
+    }
+
+    func constantXor(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstXor(lhs.ref, rhs.ref)!)
+    }
+
+    func constantGEP(_ elementType: Type, _ value: Constant, indices: [Constant]) -> Constant {
+        var idxRefs: [LLVMValueRef?] = indices.map { $0.ref }
+        let ref = idxRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstGEP2(elementType.ref, value.ref, buffer.baseAddress, UInt32(indices.count))
+        }
+        return wrapConstant(ref!)
+    }
+
+    func constantTruncOrBitCast(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstTruncOrBitCast(value.ref, type.ref)!)
+    }
+
+    func constantPointerCast(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstPointerCast(value.ref, type.ref)!)
+    }
+
+    func constantAddrSpaceCast(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstAddrSpaceCast(value.ref, type.ref)!)
+    }
+
+    func constantExtractElement(_ vector: Constant, _ index: Constant) -> Constant {
+        wrapConstant(LLVMConstExtractElement(vector.ref, index.ref)!)
+    }
+
+    func constantInsertElement(_ vector: Constant, _ element: Constant, _ index: Constant) -> Constant {
+        wrapConstant(LLVMConstInsertElement(vector.ref, element.ref, index.ref)!)
+    }
+
+    func constantShuffleVector(_ v1: Constant, _ v2: Constant, mask: Constant) -> Constant {
+        wrapConstant(LLVMConstShuffleVector(v1.ref, v2.ref, mask.ref)!)
+    }
+
+    func constantInlineAsm(_ type: Type, asmString: String, constraints: String, hasSideEffects: Bool, isAlignStack: Bool, dialect: LLVMInlineAsmDialect = LLVMInlineAsmDialectATT, canThrow: Bool = false) -> Value {
+        let ref = asmString.withCString { asmPtr in
+            constraints.withCString { cPtr in
+                LLVMGetInlineAsm(type.ref, asmPtr, asmString.utf8.count, cPtr, constraints.utf8.count, hasSideEffects ? 1 : 0, isAlignStack ? 1 : 0, dialect, canThrow ? 1 : 0)
+            }
+        }
+        return Value(ref: ref!, context: self)
+    }
+
+    func blockAddress(function: Function, block: BasicBlock) -> BlockAddress {
+        let ref = LLVMBlockAddress(function.ref, block.ref)
+        return BlockAddress(ref: ref!, context: self)
+    }
+
     func constantStruct(_ values: [Constant], isPacked: Bool = false) -> ConstantStruct {
         var valRefs: [LLVMValueRef?] = values.map { $0.ref }
         let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
@@ -211,6 +296,14 @@ final class Context {
             constant = ConstantInt(ref: ref, context: self)
         } else if LLVMIsAConstantFP(ref) != nil {
             constant = ConstantFP(ref: ref, context: self)
+        } else if LLVMIsAConstantDataArray(ref) != nil {
+            constant = ConstantDataArray(ref: ref, context: self)
+        } else if LLVMIsAConstantExpr(ref) != nil {
+            constant = ConstantExpr(ref: ref, context: self)
+        } else if LLVMIsAConstantVector(ref) != nil {
+            constant = ConstantVector(ref: ref, context: self)
+        } else if LLVMIsABlockAddress(ref) != nil {
+            constant = BlockAddress(ref: ref, context: self)
         } else {
             constant = Constant(ref: ref, context: self)
         }

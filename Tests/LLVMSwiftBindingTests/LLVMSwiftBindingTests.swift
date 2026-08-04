@@ -912,5 +912,135 @@ func jitAddFunction() throws {
     builder.buildRet(two)
     try module.verify()
 }
+
+@Test func callBrInstruction() throws {
+    let ctx = Context()
+    let module = Module(name: "callbr", in: ctx)
+    let i32 = ctx.int32
+
+    let asmType = ctx.functionType(returnType: ctx.void)
+    let asm = ctx.constantInlineAsm(asmType, asmString: "", constraints: "!i", hasSideEffects: false, isAlignStack: false)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let normal = main.appendBasicBlock("normal")
+    let indirect = main.appendBasicBlock("indirect")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let callBr = builder.buildCallBr(asm, calleeType: asmType, args: [], default: normal, indirectDests: [indirect], bundles: [OperandBundle(tag: "deopt", args: [ctx.constantInt(0, type: i32)])])
+    builder.positionAtEnd(of: normal)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+    builder.positionAtEnd(of: indirect)
+    builder.buildRet(ctx.constantInt(1, type: i32))
+
+    #expect(callBr is CallBrInst)
+    let ir = module.irString
+    #expect(ir.contains("callbr"))
+    #expect(ir.contains("asm"))
+    #expect(ir.contains("\"deopt\""))
+
+    let bundles = callBr.operandBundles
+    #expect(bundles.count == 1)
+    #expect(bundles[0].tag == "deopt")
+    #expect(bundles[0].args.count == 1)
+    try module.verify()
+}
+
+@Test func valueOperations() throws {
+    let ctx = Context()
+    let module = Module(name: "values", in: ctx)
+    let i32 = ctx.int32
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let lhs = main.parameter(at: 0)
+    let rhs = main.parameter(at: 1)
+    let sum = builder.buildAdd(lhs, rhs, name: "sum")
+    let ret = builder.buildRet(sum)
+
+    #expect(sum.numOperands == 2)
+    #expect(sum.operand(at: 0)?.ref == lhs.ref)
+    #expect(sum.operand(at: 1)?.ref == rhs.ref)
+    #expect(ret.numOperands == 1)
+    #expect(ret.operand(at: 0)?.ref == sum.ref)
+
+    let three = ctx.constantInt(3, type: i32)
+    sum.replaceAllUsesWith(three)
+    let terminator = entry.terminator!
+    #expect(terminator.operand(at: 0)?.ref == three.ref)
+    let ir = module.irString
+    #expect(ir.contains("ret i32 3"))
+    try module.verify()
+}
+
+@Test func constantDataArrayAndExpressions() throws {
+    let ctx = Context()
+    let module = Module(name: "constdata", in: ctx)
+    let i32 = ctx.int32
+    let i8 = ctx.int8
+
+    let str = ctx.constantDataArray(bytes: [104, 101, 108, 108, 111], type: i8)
+    #expect(str.isConstantString)
+    #expect(str.stringValue == "hello")
+    #expect((str.aggregateElement(at: 0) as? ConstantInt)?.unsignedValue == 104)
+
+    let ints = ctx.constantDataArray(bytes: [1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0], type: i32)
+    #expect(!ints.isConstantString)
+    #expect(ints.stringValue == nil)
+    #expect(ints.rawData.count == 12)
+    #expect((ints.aggregateElement(at: 2) as? ConstantInt)?.unsignedValue == 3)
+
+    let five = ctx.constantInt(5, type: i32)
+    let three = ctx.constantInt(3, type: i32)
+    let notFive = ctx.constantNot(five)
+    #expect((notFive as! ConstantInt).signedValue == -6)
+    let xorResult = ctx.constantXor(five, three)
+    #expect((xorResult as! ConstantInt).unsignedValue == 6)
+    let allOnes = ctx.constantAllOnes(i32)
+    #expect((allOnes as! ConstantInt).unsignedValue == 0xFFFFFFFF)
+    let nullPtr = ctx.constantPointerNull(ctx.pointerType())
+    #expect(nullPtr.isNull)
+    let truncated = ctx.constantTruncOrBitCast(five, to: i8)
+    #expect((truncated as! ConstantInt).unsignedValue == 5)
+    #expect(ctx.constantInt(ofString: "42", type: i32).unsignedValue == 42)
+    #expect(ctx.constantInt(ofString: "2a", type: i32, radix: 16).unsignedValue == 42)
+
+    let vector = ctx.constantVector([five, three])
+    #expect(vector.isConstant)
+    #expect(vector.aggregateElement(at: 1)?.ref == three.ref)
+
+    let element = ctx.constantExtractElement(vector, ctx.constantInt(0, type: i32))
+    #expect(element.isConstant)
+    let mask = ctx.constantVector([ctx.constantInt(0, type: i32), ctx.constantInt(1, type: i32)])
+    let shuffled = ctx.constantShuffleVector(vector, vector, mask: mask)
+    #expect(shuffled.isConstant)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let ba = ctx.blockAddress(function: main, block: entry)
+    #expect(ba is BlockAddress)
+    #expect(ba.function?.name == "main")
+    #expect(ba.basicBlock?.name == "entry")
+}
+
+@Test func globalQueries() throws {
+    let ctx = Context()
+    let module = Module(name: "globals", in: ctx)
+    let i32 = ctx.int32
+
+    let counter = module.addGlobal("counter", type: i32)
+    let flag = module.addGlobal("flag", type: ctx.int1)
+
+    #expect(module.globals.count == 2)
+    #expect(module.global(named: "counter")?.ref == counter.ref)
+    #expect(module.global(named: "flag")?.ref == flag.ref)
+    #expect(module.global(named: "missing") == nil)
+    #expect(counter.parentModule.ref == module.ref)
+}
 }
 

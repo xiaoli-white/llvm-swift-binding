@@ -33,6 +33,13 @@ final class GlobalVariable: Value {
         set { LLVMSetAlignment(ref, newValue) }
     }
 
+    var parentModule: Module {
+        let moduleRef = LLVMGetGlobalParent(ref)!
+        let module = Module(ref: moduleRef, context: context)
+        module.ownsRef = false
+        return module
+    }
+
     func addDebugInfo(_ gve: Metadata) {
         LLVMGlobalAddDebugInfo(ref, gve.ref)
     }

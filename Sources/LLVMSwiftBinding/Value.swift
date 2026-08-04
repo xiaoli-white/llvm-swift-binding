@@ -36,8 +36,25 @@ class Value {
         LLVMIsNull(ref) != 0
     }
 
+    var isPoison: Bool {
+        LLVMIsPoison(ref) != 0
+    }
+
     var valueKind: LLVMValueKind {
         LLVMGetValueKind(ref)
+    }
+
+    var numOperands: UInt32 {
+        UInt32(LLVMGetNumOperands(ref))
+    }
+
+    func operand(at index: UInt32) -> Value? {
+        guard let ref = LLVMGetOperand(ref, index) else { return nil }
+        return Value(ref: ref, context: context, module: module)
+    }
+
+    func replaceAllUsesWith(_ newValue: Value) {
+        LLVMReplaceAllUsesWith(ref, newValue.ref)
     }
 
     func setMetadata(kind: UInt32, _ node: Value?) {

@@ -1,5 +1,10 @@
 import cLLVM
 
+struct OperandBundle {
+    let tag: String
+    let args: [Value]
+}
+
 class Instruction: Value {
     static func wrap(_ ref: LLVMValueRef, context: Context, module: Module?) -> Instruction {
         let inst: Instruction
@@ -28,8 +33,10 @@ class Instruction: Value {
             inst = ICmpInst(ref: ref, context: context, module: module)
         case LLVMFCmp:
             inst = FCmpInst(ref: ref, context: context, module: module)
-        case LLVMCall, LLVMCallBr:
+        case LLVMCall:
             inst = CallInst(ref: ref, context: context, module: module)
+        case LLVMCallBr:
+            inst = CallBrInst(ref: ref, context: context, module: module)
         case LLVMPHI:
             inst = PHINode(ref: ref, context: context, module: module)
         case LLVMSelect:
@@ -73,6 +80,27 @@ class Instruction: Value {
         }
         return inst
     }
+
+    var operandBundles: [OperandBundle] {
+        let opcode = LLVMGetInstructionOpcode(ref)
+        guard opcode == LLVMCall || opcode == LLVMInvoke || opcode == LLVMCallBr else { return [] }
+        let count = LLVMGetNumOperandBundles(ref)
+        guard count > 0 else { return [] }
+        var result: [OperandBundle] = []
+        for i in 0..<count {
+            let bundleRef = LLVMGetOperandBundleAtIndex(ref, i)
+            defer { LLVMDisposeOperandBundle(bundleRef) }
+            var tagLength: Int = 0
+            let tag = String(cString: LLVMGetOperandBundleTag(bundleRef, &tagLength))
+            let argCount = LLVMGetNumOperandBundleArgs(bundleRef)
+            var args: [Value] = []
+            for j in 0..<argCount {
+                args.append(Value(ref: LLVMGetOperandBundleArgAtIndex(bundleRef, j)!, context: context, module: module))
+            }
+            result.append(OperandBundle(tag: tag, args: args))
+        }
+        return result
+    }
 }
 
 final class ReturnInst: Instruction {}
@@ -98,6 +126,8 @@ final class ICmpInst: Instruction {}
 final class FCmpInst: Instruction {}
 
 final class CallInst: Instruction {}
+
+final class CallBrInst: Instruction {}
 
 final class PHINode: Instruction {
     func addIncoming(_ value: Value, from block: BasicBlock) {

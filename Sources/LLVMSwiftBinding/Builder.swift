@@ -391,6 +391,33 @@ final class Builder {
     }
 
     @discardableResult
+    func buildCallBr(_ callee: Value, calleeType: Type, args: [Value], default dest: BasicBlock, indirectDests: [BasicBlock], bundles: [OperandBundle] = [], name: String = "") -> CallBrInst {
+        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        var destRefs: [LLVMBasicBlockRef?] = indirectDests.map { $0.ref }
+        var bundleRefs: [LLVMOperandBundleRef?] = []
+        for bundle in bundles {
+            var bundleArgs: [LLVMValueRef?] = bundle.args.map { $0.ref }
+            let bundleRef = bundleArgs.withUnsafeMutableBufferPointer { buffer in
+                LLVMCreateOperandBundle(bundle.tag, bundle.tag.utf8.count, buffer.baseAddress, UInt32(bundle.args.count))
+            }
+            bundleRefs.append(bundleRef)
+        }
+        defer {
+            for bundleRef in bundleRefs {
+                LLVMDisposeOperandBundle(bundleRef)
+            }
+        }
+        let inst = argRefs.withUnsafeMutableBufferPointer { argBuf in
+            destRefs.withUnsafeMutableBufferPointer { destBuf in
+                bundleRefs.withUnsafeMutableBufferPointer { bundleBuf in
+                    LLVMBuildCallBr(ref, calleeType.ref, callee.ref, dest.ref, destBuf.baseAddress, UInt32(indirectDests.count), argBuf.baseAddress, UInt32(args.count), bundleBuf.baseAddress, UInt32(bundles.count), name)
+                }
+            }
+        }
+        return CallBrInst(ref: inst!, context: context, module: currentModule)
+    }
+
+    @discardableResult
     func buildCleanupRet(_ cleanupPad: CleanupPadInst, to block: BasicBlock?) -> CleanupRetInst {
         let inst = LLVMBuildCleanupRet(ref, cleanupPad.ref, block?.ref)!
         return CleanupRetInst(ref: inst, context: context, module: currentModule)

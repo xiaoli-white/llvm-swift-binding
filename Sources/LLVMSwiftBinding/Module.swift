@@ -41,6 +41,26 @@ final class Module {
         return GlobalVariable(ref: ref, module: self)
     }
 
+    func global(named name: String) -> GlobalVariable? {
+        var found: LLVMValueRef? = nil
+        name.withCString { namePtr in
+            found = LLVMGetNamedGlobalWithLength(self.ref, namePtr, name.utf8.count)
+        }
+        guard let ref = found else { return nil }
+        return GlobalVariable(ref: ref, module: self)
+    }
+
+    var globals: [GlobalVariable] {
+        var result: [GlobalVariable] = []
+        guard let first = LLVMGetFirstGlobal(ref) else { return [] }
+        var current: LLVMValueRef? = first
+        while let gv = current {
+            result.append(GlobalVariable(ref: gv, module: self))
+            current = LLVMGetNextGlobal(gv)
+        }
+        return result
+    }
+
     var target: String {
         get { String(cString: LLVMGetTarget(ref)!) }
         set { LLVMSetTarget(ref, newValue) }
