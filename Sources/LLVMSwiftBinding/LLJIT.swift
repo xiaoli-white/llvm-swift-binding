@@ -30,6 +30,18 @@ public final class LLJIT {
         String(cString: LLVMOrcLLJITGetTripleString(ref))
     }
 
+    public var globalPrefix: Character {
+        Character(UnicodeScalar(UInt8(bitPattern: LLVMOrcLLJITGetGlobalPrefix(ref))))
+    }
+
+    public func enableDebugSupport() throws {
+        let err = LLVMOrcLLJITEnableDebugSupport(ref)
+        if err != nil {
+            let msg = errorMessage(from: err!)
+            throw LLVMError.emitFailed(message: "failed to enable debug support: \(msg)")
+        }
+    }
+
     public func addModule(_ module: Module) throws {
         let tsm = LLVMOrcCreateNewThreadSafeModule(module.ref, module.context.ref)
         defer { LLVMOrcDisposeThreadSafeModule(tsm) }

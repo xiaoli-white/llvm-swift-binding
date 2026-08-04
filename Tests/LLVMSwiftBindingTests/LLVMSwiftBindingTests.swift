@@ -282,6 +282,8 @@ func jitHelloWorld() throws {
     builder.buildRet(ctx.constantInt(42, type: i32))
 
     let jit = try LLJIT()
+    #expect(jit.globalPrefix == "@")
+    try jit.enableDebugSupport()
     try jit.addModule(module)
     let result = try jit.runFunction("main")
     #expect(result == 42)
