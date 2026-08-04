@@ -544,5 +544,85 @@ func jitAddFunction() throws {
     #expect(result == 42)
     #expect(ee.functionAddress("main") != 0)
 }
+
+@Test func objectFileRead() throws {
+    let ctx = Context()
+    let module = Module(name: "obj", in: ctx)
+    let i32 = ctx.int32
+    let funcType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: funcType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    TargetMachine.initializeAllTargets()
+    let triple = TargetMachine.defaultTriple
+    let target = try Target.fromTriple(triple)
+    let tm = TargetMachine(target: target, triple: triple, cpu: TargetMachine.hostCPUName)
+
+    let tmpDir = NSTemporaryDirectory()
+    let objPath = "\(tmpDir)obj_\(UUID().uuidString).o"
+    try tm.emitToFile(module: module, objPath)
+    defer { try? FileManager.default.removeItem(atPath: objPath) }
+
+    let buffer = try MemoryBuffer.fromFile(objPath)
+    let binary = try Binary(buffer: buffer)
+    #expect(binary.type == LLVMBinaryTypeELF64L || binary.type == LLVMBinaryTypeELF64B)
+    #expect(binary.sections().contains { $0.name.contains("text") })
+    #expect(binary.symbols().contains { $0.name.contains("main") })
+}
+
+@Test func atomicAndAggregateInstructions() throws {
+    let ctx = Context()
+    let module = Module(name: "atomic", in: ctx)
+    let i32 = ctx.int32
+    let i64 = ctx.int64
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let a0 = main.parameter(at: 0)
+    let a1 = main.parameter(at: 1)
+
+    let ptr = builder.buildAlloca(i32, name: "ptr")
+    builder.buildStore(ctx.constantInt(0, type: i32), to: ptr)
+    builder.buildFence(ordering: LLVMAtomicOrderingSequentiallyConsistent)
+    let old = builder.buildAtomicRMW(
+        LLVMAtomicRMWBinOpAdd, ptr, ctx.constantInt(1, type: i32),
+        ordering: LLVMAtomicOrderingSequentiallyConsistent
+    )
+    builder.buildStore(old, to: ptr)
+
+    let agg = ctx.constantStruct([
+        ctx.constantInt(7, type: i32),
+        ctx.constantInt(9, type: i64)
+    ])
+    let i64val = builder.buildSExt(a0, to: i64, name: "wide")
+    let inserted = builder.buildInsertValue(agg, i64val, index: 1, name: "agg")
+    _ = builder.buildExtractValue(inserted, index: 1, name: "val")
+
+    let vecType = ctx.vectorType(elementType: i32, count: 4)
+    let vec = ctx.undef(vecType)
+    let zero = ctx.constantInt(0, type: i32)
+    let insEl = builder.buildInsertElement(vec, a0, zero, name: "vec")
+    let exEl = builder.buildExtractElement(insEl, a1, name: "el")
+    let frozen = builder.buildFreeze(exEl, name: "frozen")
+
+    builder.buildRet(frozen)
+
+    let ir = module.irString
+    #expect(ir.contains("fence seq_cst"))
+    #expect(ir.contains("atomicrmw add"))
+    #expect(ir.contains("insertvalue"))
+    #expect(ir.contains("extractvalue"))
+    #expect(ir.contains("insertelement"))
+    #expect(ir.contains("extractelement"))
+    #expect(ir.contains("freeze"))
+
+    try module.verify()
+}
 }
 

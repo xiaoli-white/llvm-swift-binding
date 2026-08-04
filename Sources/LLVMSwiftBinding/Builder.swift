@@ -295,4 +295,92 @@ final class Builder {
         let inst = LLVMBuildSwitch(ref, value.ref, dest.ref, numCases)!
         return SwitchInst(ref: inst, context: context, module: currentModule)
     }
+
+    @discardableResult
+    func buildUnreachable() -> UnreachableInst {
+        let inst = LLVMBuildUnreachable(ref)!
+        return UnreachableInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildFence(ordering: LLVMAtomicOrdering, singleThread: Bool = false, name: String = "") -> FenceInst {
+        let inst = LLVMBuildFence(ref, ordering, singleThread ? 1 : 0, name)!
+        return FenceInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildAtomicRMW(_ op: LLVMAtomicRMWBinOp, _ ptr: Value, _ value: Value, ordering: LLVMAtomicOrdering, singleThread: Bool = false) -> AtomicRMWInst {
+        let inst = LLVMBuildAtomicRMW(ref, op, ptr.ref, value.ref, ordering, singleThread ? 1 : 0)!
+        return AtomicRMWInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildAtomicCmpXchg(_ ptr: Value, _ cmp: Value, _ new: Value, successOrdering: LLVMAtomicOrdering, failureOrdering: LLVMAtomicOrdering, singleThread: Bool = false) -> AtomicCmpXchgInst {
+        let inst = LLVMBuildAtomicCmpXchg(ref, ptr.ref, cmp.ref, new.ref, successOrdering, failureOrdering, singleThread ? 1 : 0)!
+        return AtomicCmpXchgInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildExtractValue(_ aggregate: Value, index: UInt32, name: String = "") -> ExtractValueInst {
+        let inst = LLVMBuildExtractValue(ref, aggregate.ref, index, name)!
+        return ExtractValueInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildInsertValue(_ aggregate: Value, _ element: Value, index: UInt32, name: String = "") -> InsertValueInst {
+        let inst = LLVMBuildInsertValue(ref, aggregate.ref, element.ref, index, name)!
+        return InsertValueInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildExtractElement(_ vector: Value, _ index: Value, name: String = "") -> ExtractElementInst {
+        let inst = LLVMBuildExtractElement(ref, vector.ref, index.ref, name)!
+        return ExtractElementInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildInsertElement(_ vector: Value, _ element: Value, _ index: Value, name: String = "") -> InsertElementInst {
+        let inst = LLVMBuildInsertElement(ref, vector.ref, element.ref, index.ref, name)!
+        return InsertElementInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildShuffleVector(_ v1: Value, _ v2: Value, mask: Value, name: String = "") -> ShuffleVectorInst {
+        let inst = LLVMBuildShuffleVector(ref, v1.ref, v2.ref, mask.ref, name)!
+        return ShuffleVectorInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildFreeze(_ value: Value, name: String = "") -> FreezeInst {
+        let inst = LLVMBuildFreeze(ref, value.ref, name)!
+        return FreezeInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildVAArg(_ list: Value, type: Type, name: String = "") -> VAArgInst {
+        let inst = LLVMBuildVAArg(ref, list.ref, type.ref, name)!
+        return VAArgInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildResume(_ exn: Value) -> ResumeInst {
+        let inst = LLVMBuildResume(ref, exn.ref)!
+        return ResumeInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildLandingPad(_ type: Type, personality: Value? = nil, numClauses: UInt32 = 0, name: String = "") -> LandingPadInst {
+        let inst = LLVMBuildLandingPad(ref, type.ref, personality?.ref, numClauses, name)!
+        return LandingPadInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildInvoke(_ function: Function, _ args: [Value], then: BasicBlock, catch: BasicBlock, name: String = "") -> InvokeInst {
+        let funcTypeRef = LLVMGlobalGetValueType(function.ref)!
+        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMBuildInvoke2(ref, funcTypeRef, function.ref, buffer.baseAddress, UInt32(args.count), then.ref, `catch`.ref, name)
+        }
+        return InvokeInst(ref: inst!, context: context, module: currentModule)
+    }
 }

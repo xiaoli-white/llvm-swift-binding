@@ -50,3 +50,62 @@ final class SelectInst: Instruction {}
 final class GetElementPtrInst: Instruction {}
 
 final class CastInst: Instruction {}
+
+final class UnreachableInst: Instruction {}
+
+final class FenceInst: Instruction {}
+
+final class AtomicRMWInst: Instruction {}
+
+final class AtomicCmpXchgInst: Instruction {}
+
+final class ExtractValueInst: Instruction {}
+
+final class InsertValueInst: Instruction {}
+
+final class ExtractElementInst: Instruction {}
+
+final class InsertElementInst: Instruction {}
+
+final class ShuffleVectorInst: Instruction {}
+
+final class FreezeInst: Instruction {}
+
+final class VAArgInst: Instruction {}
+
+final class ResumeInst: Instruction {}
+
+final class InvokeInst: Instruction {
+    func addClause(_ clause: Value) {
+        LLVMAddClause(ref, clause.ref)
+    }
+}
+
+final class LandingPadInst: Instruction {
+    var isCleanup: Bool {
+        get { LLVMIsCleanup(ref) != 0 }
+        set { LLVMSetCleanup(ref, newValue ? 1 : 0) }
+    }
+
+    var clauseCount: UInt32 {
+        LLVMGetNumClauses(ref)
+    }
+
+    func clause(at index: UInt32) -> Value {
+        Value(ref: LLVMGetClause(ref, index)!, context: context, module: module)
+    }
+
+    func addClause(_ clause: Value) {
+        LLVMAddClause(ref, clause.ref)
+    }
+}
+
+final class CatchPadInst: Instruction {}
+
+final class CleanupPadInst: Instruction {}
+
+final class CatchSwitchInst: Instruction {
+    func addHandler(_ handler: BasicBlock) {
+        LLVMAddHandler(ref, handler.ref)
+    }
+}
