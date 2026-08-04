@@ -1409,5 +1409,33 @@ func jitAddFunction() throws {
     #expect(ir.contains("llvm.dbg"))
     try module.verify()
 }
+
+@Test func passBuilderRunPasses() throws {
+    let ctx = Context()
+    let module = Module(name: "passes", in: ctx)
+    let i32 = ctx.int32
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let zero = ctx.constantInt(0, type: i32)
+    let x = builder.buildAdd(main.parameter(at: 0), zero, name: "x")
+    builder.buildRet(x)
+
+    let before = module.irString
+    #expect(before.contains("%x = add"))
+
+    let pm = PassManager()
+    let options = PassBuilderOptions()
+    options.setVerifyEach(true)
+    options.setDebugLogging(false)
+    try pm.runPasses("instcombine", on: module, options: options)
+
+    let after = module.irString
+    #expect(!after.contains("add"))
+    try module.verify()
+}
 }
 
