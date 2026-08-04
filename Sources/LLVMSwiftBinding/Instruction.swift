@@ -104,6 +104,16 @@ final class CatchPadInst: Instruction {}
 
 final class CleanupPadInst: Instruction {}
 
+final class IndirectBrInst: Instruction {
+    func addDestination(_ dest: BasicBlock) {
+        LLVMAddDestination(ref, dest.ref)
+    }
+}
+
+final class CleanupRetInst: Instruction {}
+
+final class CatchRetInst: Instruction {}
+
 final class CatchSwitchInst: Instruction {
     func addHandler(_ handler: BasicBlock) {
         LLVMAddHandler(ref, handler.ref)

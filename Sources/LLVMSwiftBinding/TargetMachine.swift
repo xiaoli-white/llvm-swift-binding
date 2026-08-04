@@ -41,6 +41,7 @@ final class Target {
 
 final class TargetMachine {
     let ref: LLVMTargetMachineRef
+    var ownsRef: Bool = true
 
     init(target: Target,
          triple: String,
@@ -63,8 +64,15 @@ final class TargetMachine {
         }
     }
 
+    init(ref: LLVMTargetMachineRef) {
+        self.ref = ref
+        self.ownsRef = false
+    }
+
     deinit {
-        LLVMDisposeTargetMachine(ref)
+        if ownsRef {
+            LLVMDisposeTargetMachine(ref)
+        }
     }
 
     static var defaultTriple: String {

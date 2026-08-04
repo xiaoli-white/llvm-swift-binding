@@ -383,4 +383,46 @@ final class Builder {
         }
         return InvokeInst(ref: inst!, context: context, module: currentModule)
     }
+
+    @discardableResult
+    func buildIndirectBr(_ addr: Value, numDests: UInt32 = 0) -> IndirectBrInst {
+        let inst = LLVMBuildIndirectBr(ref, addr.ref, numDests)!
+        return IndirectBrInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildCleanupRet(_ cleanupPad: CleanupPadInst, to block: BasicBlock?) -> CleanupRetInst {
+        let inst = LLVMBuildCleanupRet(ref, cleanupPad.ref, block?.ref)!
+        return CleanupRetInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildCatchRet(_ catchPad: CatchPadInst, to block: BasicBlock) -> CatchRetInst {
+        let inst = LLVMBuildCatchRet(ref, catchPad.ref, block.ref)!
+        return CatchRetInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildCatchPad(parentPad: Value?, args: [Value] = [], name: String = "") -> CatchPadInst {
+        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMBuildCatchPad(ref, parentPad?.ref, buffer.baseAddress, UInt32(args.count), name)
+        }
+        return CatchPadInst(ref: inst!, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildCleanupPad(parentPad: Value?, args: [Value] = [], name: String = "") -> CleanupPadInst {
+        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMBuildCleanupPad(ref, parentPad?.ref, buffer.baseAddress, UInt32(args.count), name)
+        }
+        return CleanupPadInst(ref: inst!, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildCatchSwitch(parentPad: Value?, unwind: BasicBlock?, numHandlers: UInt32 = 0, name: String = "") -> CatchSwitchInst {
+        let inst = LLVMBuildCatchSwitch(ref, parentPad?.ref, unwind?.ref, numHandlers, name)!
+        return CatchSwitchInst(ref: inst, context: context, module: currentModule)
+    }
 }

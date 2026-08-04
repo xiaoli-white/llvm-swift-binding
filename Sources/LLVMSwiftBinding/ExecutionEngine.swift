@@ -106,4 +106,65 @@ final class ExecutionEngine {
     func runStaticDestructors() {
         LLVMRunStaticDestructors(ref)
     }
+
+    func removeModule(_ module: Module) throws -> Module {
+        var outMod: LLVMModuleRef? = nil
+        var errMsg: UnsafeMutablePointer<CChar>? = nil
+        let result = LLVMRemoveModule(ref, module.ref, &outMod, &errMsg)
+        if result != 0 {
+            let msg = errorMessage(from: errMsg)
+            throw LLVMError.emitFailed(message: "failed to remove module: \(msg)")
+        }
+        return Module(ref: outMod!, context: module.context)
+    }
+
+    func addGlobalMapping(_ global: GlobalVariable, to pointer: UnsafeMutableRawPointer) {
+        LLVMAddGlobalMapping(ref, global.ref, pointer)
+    }
+
+    func globalValueAddress(_ name: String) -> UInt64 {
+        name.withCString { namePtr in
+            LLVMGetGlobalValueAddress(ref, namePtr)
+        }
+    }
+
+    var targetData: DataLayout {
+        DataLayout(ref: LLVMGetExecutionEngineTargetData(ref), owns: false)
+    }
+
+    var targetMachine: TargetMachine {
+        TargetMachine(ref: LLVMGetExecutionEngineTargetMachine(ref))
+    }
+
+    var lastErrorMessage: String? {
+        var errMsg: UnsafeMutablePointer<CChar>? = nil
+        let result = LLVMExecutionEngineGetErrMsg(ref, &errMsg)
+        guard result != 0, let errMsg else { return nil }
+        return String(cString: errMsg)
+    }
+
+    func runFunctionAsMain(_ function: Function, args: [String] = [], env: [String] = []) -> Int32 {
+        let argv: [UnsafeMutablePointer<CChar>?] = args.map(cString)
+        let envp: [UnsafeMutablePointer<CChar>?] = env.map(cString)
+        defer {
+            argv.forEach { $0?.deallocate() }
+            envp.forEach { $0?.deallocate() }
+        }
+        let result = argv.withUnsafeBufferPointer { argvBuf in
+            envp.withUnsafeBufferPointer { envpBuf in
+                let argsPtr = argvBuf.baseAddress.map {
+                    UnsafeRawPointer($0).assumingMemoryBound(to: UnsafePointer<CChar>?.self)
+                }
+                let envPtr = envpBuf.baseAddress.map {
+                    UnsafeRawPointer($0).assumingMemoryBound(to: UnsafePointer<CChar>?.self)
+                }
+                return LLVMRunFunctionAsMain(ref, function.ref, UInt32(args.count), argsPtr, envPtr)
+            }
+        }
+        return result
+    }
+
+    func freeMachineCode(for function: Function) {
+        LLVMFreeMachineCodeForFunction(ref, function.ref)
+    }
 }

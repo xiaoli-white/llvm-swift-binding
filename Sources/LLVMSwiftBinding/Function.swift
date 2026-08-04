@@ -31,4 +31,14 @@ final class Function: Value {
         guard let sp = LLVMGetSubprogram(ref) else { return nil }
         return Metadata(ref: sp)
     }
+
+    var personality: Function? {
+        get {
+            guard let fn = LLVMGetPersonalityFn(ref) else { return nil }
+            return Function(ref: fn, module: module!)
+        }
+        set {
+            LLVMSetPersonalityFn(ref, newValue?.ref)
+        }
+    }
 }

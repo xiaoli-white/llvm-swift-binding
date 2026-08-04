@@ -19,3 +19,12 @@ func errorMessage(from error: LLVMErrorRef) -> String {
     LLVMDisposeErrorMessage(ptr)
     return str
 }
+
+func cString(_ str: String) -> UnsafeMutablePointer<CChar> {
+    let count = str.utf8.count + 1
+    let ptr = UnsafeMutablePointer<CChar>.allocate(capacity: count)
+    str.withCString { src in
+        ptr.initialize(from: src, count: count)
+    }
+    return ptr
+}

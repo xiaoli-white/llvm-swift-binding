@@ -728,5 +728,120 @@ func jitAddFunction() throws {
     #expect(module.namedMetadataOperands("llvm.module.flags").count == 1)
     #expect(module.irString.contains("llvm.module.flags"))
 }
+
+@Test func executionEngineExtensions() throws {
+    let ctx = Context()
+    let module = Module(name: "eeext", in: ctx)
+    let i32 = ctx.int32
+
+    let answer = module.addGlobal("answer", type: i32)
+    answer.initializer = ctx.constantInt(7, type: i32)
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(main.parameter(at: 0))
+
+    TargetMachine.initializeAllTargets()
+    let ee = try ExecutionEngine(module: module)
+
+    #expect(ee.targetData.string.contains("i64:64"))
+    #expect(ee.targetMachine.ref != nil)
+    #expect(ee.globalValueAddress("answer") != 0)
+    let result = ee.runFunctionAsMain(main, args: ["prog", "42"], env: [])
+    #expect(result == 2)
+}
+
+@Test func indirectBranchInstruction() throws {
+    let ctx = Context()
+    let module = Module(name: "indirectbr", in: ctx)
+    let i32 = ctx.int32
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let a = main.parameter(at: 0)
+
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let aPtr = builder.buildIntToPtr(a, to: ctx.pointerType(), name: "ap")
+    let indirect = builder.buildIndirectBr(aPtr, numDests: 2)
+    let dest1 = main.appendBasicBlock("dest1")
+    let dest2 = main.appendBasicBlock("dest2")
+    indirect.addDestination(dest1)
+    indirect.addDestination(dest2)
+
+    builder.positionAtEnd(of: dest1)
+    builder.buildRet(ctx.constantInt(1, type: i32))
+
+    builder.positionAtEnd(of: dest2)
+    builder.buildRet(ctx.constantInt(2, type: i32))
+
+    let ir = module.irString
+    #expect(ir.contains("indirectbr"))
+    try module.verify()
+}
+
+@Test func ehPadInstructions() throws {
+    let ctx = Context()
+    let module = Module(name: "eh", in: ctx)
+    let i32 = ctx.int32
+
+    let personalityType = ctx.functionType(returnType: ctx.int32, parameterTypes: [i32, ctx.pointerType(), ctx.pointerType()])
+    let personality = module.addFunction("__gxx_personality_v0", type: personalityType)
+    let fooType = ctx.functionType(returnType: ctx.void)
+    let foo = module.addFunction("foo", type: fooType)
+    let fooEntry = foo.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: fooEntry)
+    builder.buildRetVoid()
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    main.personality = personality
+    let entry = main.appendBasicBlock("entry")
+    let cont = main.appendBasicBlock("cont")
+    let pad = main.appendBasicBlock("pad")
+    let handler = main.appendBasicBlock("handler")
+
+    builder.positionAtEnd(of: entry)
+    builder.buildInvoke(foo, [], then: cont, catch: pad)
+
+    builder.positionAtEnd(of: pad)
+    let cs = builder.buildCatchSwitch(parentPad: nil, unwind: nil, name: "cs")
+    cs.addHandler(handler)
+
+    builder.positionAtEnd(of: handler)
+    let cp = builder.buildCatchPad(parentPad: cs, name: "cp")
+    builder.buildCatchRet(cp, to: cont)
+
+    builder.positionAtEnd(of: cont)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    let cleanupFuncType = ctx.functionType(returnType: i32)
+    let cleanupFunc = module.addFunction("cleanup_test", type: cleanupFuncType)
+    cleanupFunc.personality = personality
+    let ce = cleanupFunc.appendBasicBlock("entry")
+    let ccont = cleanupFunc.appendBasicBlock("cont")
+    let cpad = cleanupFunc.appendBasicBlock("pad")
+    builder.positionAtEnd(of: ce)
+    builder.buildInvoke(foo, [], then: ccont, catch: cpad)
+    builder.positionAtEnd(of: cpad)
+    let cp2 = builder.buildCleanupPad(parentPad: nil, name: "cp2")
+    builder.buildCleanupRet(cp2, to: nil)
+    builder.positionAtEnd(of: ccont)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+
+    let ir = module.irString
+    #expect(ir.contains("invoke"))
+    #expect(ir.contains("catchswitch"))
+    #expect(ir.contains("catchpad"))
+    #expect(ir.contains("catchret"))
+    #expect(ir.contains("cleanuppad"))
+    #expect(ir.contains("cleanupret"))
+    try module.verify()
+}
 }
 
