@@ -391,7 +391,15 @@ final class Builder {
     }
 
     @discardableResult
-    func buildCallBr(_ callee: Value, calleeType: Type, args: [Value], default dest: BasicBlock, indirectDests: [BasicBlock], bundles: [OperandBundle] = [], name: String = "") -> CallBrInst {
+    func buildCallBr(_ callee: Value, args: [Value], default dest: BasicBlock, indirectDests: [BasicBlock], bundles: [OperandBundle] = [], name: String = "") -> CallBrInst {
+        let calleeType: Type
+        if LLVMGetValueKind(callee.ref) == LLVMInlineAsmValueKind {
+            calleeType = Type(ref: LLVMGetInlineAsmFunctionType(callee.ref)!, context: context)
+        } else if let fn = callee as? Function {
+            calleeType = Type(ref: LLVMGlobalGetValueType(fn.ref)!, context: context)
+        } else {
+            calleeType = callee.type
+        }
         var argRefs: [LLVMValueRef?] = args.map { $0.ref }
         var destRefs: [LLVMBasicBlockRef?] = indirectDests.map { $0.ref }
         var bundleRefs: [LLVMOperandBundleRef?] = []

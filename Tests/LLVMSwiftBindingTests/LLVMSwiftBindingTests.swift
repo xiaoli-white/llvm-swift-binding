@@ -928,7 +928,7 @@ func jitAddFunction() throws {
     let indirect = main.appendBasicBlock("indirect")
     let builder = Builder(in: ctx)
     builder.positionAtEnd(of: entry)
-    let callBr = builder.buildCallBr(asm, calleeType: asmType, args: [], default: normal, indirectDests: [indirect], bundles: [OperandBundle(tag: "deopt", args: [ctx.constantInt(0, type: i32)])])
+    let callBr = builder.buildCallBr(asm, args: [], default: normal, indirectDests: [indirect], bundles: [OperandBundle(tag: "deopt", args: [ctx.constantInt(0, type: i32)])])
     builder.positionAtEnd(of: normal)
     builder.buildRet(ctx.constantInt(0, type: i32))
     builder.positionAtEnd(of: indirect)
@@ -1007,6 +1007,9 @@ func jitAddFunction() throws {
     let truncated = ctx.constantTruncOrBitCast(five, to: i8)
     #expect((truncated as! ConstantInt).unsignedValue == 5)
     #expect(ctx.constantInt(ofString: "42", type: i32).unsignedValue == 42)
+    #expect(ctx.constantInt(ofString: "0x2a", type: i32).unsignedValue == 42)
+    #expect(ctx.constantInt(ofString: "0b101010", type: i32).unsignedValue == 42)
+    #expect(ctx.constantInt(ofString: "052", type: i32, radix: 8).unsignedValue == 42)
     #expect(ctx.constantInt(ofString: "2a", type: i32, radix: 16).unsignedValue == 42)
 
     let vector = ctx.constantVector([five, three])

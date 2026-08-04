@@ -140,11 +140,33 @@ final class Context {
         return ConstantVector(ref: ref!, context: self)
     }
 
-    func constantInt(ofString str: String, type: IntegerType, radix: UInt8 = 10) -> ConstantInt {
-        let ref = str.withCString { strPtr in
-            LLVMConstIntOfStringAndSize(type.ref, strPtr, UInt32(str.utf8.count), radix)
+    func constantInt(ofString str: String, type: IntegerType, radix: UInt8 = 0) -> ConstantInt {
+        let (clean, effectiveRadix) = Self.resolveRadix(str, radix: radix)
+        let ref = clean.withCString { strPtr in
+            LLVMConstIntOfStringAndSize(type.ref, strPtr, UInt32(clean.utf8.count), effectiveRadix)
         }
         return wrapConstant(ref!) as! ConstantInt
+    }
+
+    private static func resolveRadix(_ str: String, radix: UInt8) -> (String, UInt8) {
+        let lower = str.lowercased()
+        if radix != 0 {
+            switch radix {
+            case 16:
+                if lower.hasPrefix("0x") { return (String(str.dropFirst(2)), 16) }
+            case 2:
+                if lower.hasPrefix("0b") { return (String(str.dropFirst(2)), 2) }
+            case 8:
+                if lower.hasPrefix("0o") { return (String(str.dropFirst(2)), 8) }
+            default:
+                break
+            }
+            return (str, radix)
+        }
+        if lower.hasPrefix("0x") { return (String(str.dropFirst(2)), 16) }
+        if lower.hasPrefix("0b") { return (String(str.dropFirst(2)), 2) }
+        if lower.hasPrefix("0o") { return (String(str.dropFirst(2)), 8) }
+        return (str, 10)
     }
 
     func constantAllOnes(_ type: Type) -> Constant {
