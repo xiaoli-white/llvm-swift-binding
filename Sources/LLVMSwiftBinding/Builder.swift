@@ -19,6 +19,19 @@ final class Builder {
         LLVMPositionBuilderAtEnd(ref, block.ref)
     }
 
+    func setCurrentDebugLocation(_ location: Metadata?) {
+        LLVMSetCurrentDebugLocation2(ref, location?.ref)
+    }
+
+    var currentDebugLocation: Metadata? {
+        guard let ref = LLVMGetCurrentDebugLocation2(ref) else { return nil }
+        return Metadata(ref: ref)
+    }
+
+    func setInstDebugLocation(_ inst: Instruction) {
+        LLVMSetInstDebugLocation(ref, inst.ref)
+    }
+
     @discardableResult
     func buildRet(_ value: Value) -> ReturnInst {
         let inst = LLVMBuildRet(ref, value.ref)!

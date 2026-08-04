@@ -1364,5 +1364,50 @@ func jitAddFunction() throws {
     #expect(i32.description == "i32")
     #expect(ctx.functionType(returnType: ctx.void).description == "void ()")
 }
+
+@Test func debugInfoEndToEnd() throws {
+    let ctx = Context()
+    let module = Module(name: "dbg", in: ctx)
+    let i32 = ctx.int32
+    let builder = Builder(in: ctx)
+    let di = DIBuilder(module: module)
+
+    let file = di.createFile("test.c", directory: "/tmp")
+    let cu = di.createCompileUnit(language: LLVMDWARFSourceLanguageC, file: file, producer: "swift-binding")
+    let intType = di.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
+    let subType = di.createSubroutineType(file: file, returnTypes: [intType])
+    let sp = di.createFunction(scope: cu, name: "main", linkageName: "main", file: file, line: 1, subroutineType: subType)
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    main.setSubprogram(sp)
+    let entry = main.appendBasicBlock("entry")
+    builder.positionAtEnd(of: entry)
+
+    let loc = di.createDebugLocation(line: 42, column: 7, scope: sp)
+    builder.setCurrentDebugLocation(loc)
+    #expect(builder.currentDebugLocation?.ref == loc.ref)
+
+    let param = main.parameter(at: 0)
+    let alloca = builder.buildAlloca(i32, name: "x")
+    builder.buildStore(param, to: alloca)
+    let ret = builder.buildRet(ctx.constantInt(0, type: i32))
+
+    #expect(alloca.debugLocLine == 42)
+    #expect(alloca.debugLocColumn == 7)
+    #expect(alloca.debugLocFilename == "test.c")
+    #expect(alloca.debugLocDirectory == "/tmp")
+    #expect(ret.debugLocLine == 42)
+
+    let autoVar = di.createAutoVariable(scope: sp, name: "x", file: file, line: 5, type: intType)
+    let expr = di.createExpression([])
+    di.insertDeclareAtEnd(alloca, diVar: autoVar, expr: expr, location: loc, block: entry)
+    di.finalize()
+
+    let ir = module.irString
+    #expect(ir.contains("!dbg"))
+    #expect(ir.contains("llvm.dbg"))
+    try module.verify()
+}
 }
 

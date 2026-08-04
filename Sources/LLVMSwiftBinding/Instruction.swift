@@ -101,6 +101,28 @@ class Instruction: Value {
         }
         return result
     }
+
+    var debugLocLine: UInt32 {
+        LLVMGetDebugLocLine(ref)
+    }
+
+    var debugLocColumn: UInt32 {
+        LLVMGetDebugLocColumn(ref)
+    }
+
+    var debugLocFilename: String? {
+        var length: UInt32 = 0
+        guard let ptr = LLVMGetDebugLocFilename(ref, &length) else { return nil }
+        let bytes = UnsafeBufferPointer(start: ptr, count: Int(length)).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    var debugLocDirectory: String? {
+        var length: UInt32 = 0
+        guard let ptr = LLVMGetDebugLocDirectory(ref, &length) else { return nil }
+        let bytes = UnsafeBufferPointer(start: ptr, count: Int(length)).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
 }
 
 final class ReturnInst: Instruction {}
