@@ -6,7 +6,7 @@ public enum VerifierFailureAction {
     public static let returnStatus = LLVMReturnStatusAction
 }
 
-public extension Module {
+extension Module {
     public func verify(action: LLVMVerifierFailureAction = LLVMReturnStatusAction) throws {
         var errMsg: UnsafeMutablePointer<CChar>? = nil
         let result = LLVMVerifyModule(ref, action, &errMsg)
@@ -17,7 +17,7 @@ public extension Module {
     }
 }
 
-public extension Function {
+extension Function {
     public func verify(action: LLVMVerifierFailureAction = LLVMReturnStatusAction) -> Bool {
         LLVMVerifyFunction(ref, action) == 0
     }

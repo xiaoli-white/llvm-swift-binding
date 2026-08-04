@@ -81,7 +81,7 @@ public enum AttributeIndex {
     }
 }
 
-public extension Value {
+extension Value {
     public func addAttribute(_ attribute: Attribute, at index: LLVMAttributeIndex) {
         LLVMAddAttributeAtIndex(ref, index, attribute.ref)
     }
@@ -107,7 +107,7 @@ public extension Value {
     }
 }
 
-public extension CallInst {
+extension CallInst {
     public func addCallSiteAttribute(_ attribute: Attribute, at index: LLVMAttributeIndex) {
         LLVMAddCallSiteAttribute(ref, index, attribute.ref)
     }

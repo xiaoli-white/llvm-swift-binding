@@ -86,7 +86,7 @@ public final class DataLayout {
     }
 }
 
-public extension Module {
+extension Module {
     public var dataLayout: DataLayout {
         get {
             DataLayout(ref: LLVMGetModuleDataLayout(ref), owns: false)
@@ -97,7 +97,7 @@ public extension Module {
     }
 }
 
-public extension TargetMachine {
+extension TargetMachine {
     public var dataLayout: DataLayout {
         DataLayout(ref: LLVMCreateTargetDataLayout(ref), owns: true)
     }

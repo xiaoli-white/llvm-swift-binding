@@ -1,6 +1,6 @@
 import cLLVM
 
-public extension Module {
+extension Module {
     public static func parseIR(_ ir: String, in context: Context, bufferName: String = "ir") throws -> Module {
         let memBuf = MemoryBuffer.fromString(ir, bufferName: bufferName)
         var outModule: LLVMModuleRef? = nil

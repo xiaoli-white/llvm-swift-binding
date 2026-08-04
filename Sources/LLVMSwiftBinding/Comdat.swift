@@ -13,7 +13,7 @@ public final class Comdat {
     }
 }
 
-public extension Module {
+extension Module {
     public func getOrInsertComdat(_ name: String) -> Comdat {
         let ref = name.withCString { namePtr in
             LLVMGetOrInsertComdat(self.ref, namePtr)
@@ -22,7 +22,7 @@ public extension Module {
     }
 }
 
-public extension Value {
+extension Value {
     public var comdat: Comdat? {
         get {
             guard let ref = LLVMGetComdat(ref) else { return nil }

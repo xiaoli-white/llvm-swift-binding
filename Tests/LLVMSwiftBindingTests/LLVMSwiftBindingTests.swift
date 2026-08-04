@@ -460,8 +460,6 @@ func jitAddFunction() throws {
     )
 
     let intType = di.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
-    let ptrType = di.createPointerType(intType, sizeInBits: 64)
-    let constType = di.createQualifiedType(tag: 0x26, type: intType)
     let typedefType = di.createTypedef(type: intType, name: "myint", file: file, line: 1, scope: cu)
     let structType = di.createStructType(
         scope: cu,
@@ -748,7 +746,6 @@ func jitAddFunction() throws {
     let ee = try ExecutionEngine(module: module)
 
     #expect(ee.targetData.string.contains("i64:64"))
-    #expect(ee.targetMachine.ref != nil)
     #expect(ee.globalValueAddress("answer") != 0)
     let result = ee.runFunctionAsMain(main, args: ["prog", "42"], env: [])
     #expect(result == 2)
@@ -934,7 +931,6 @@ func jitAddFunction() throws {
     builder.positionAtEnd(of: indirect)
     builder.buildRet(ctx.constantInt(1, type: i32))
 
-    #expect(callBr is CallBrInst)
     let ir = module.irString
     #expect(ir.contains("callbr"))
     #expect(ir.contains("asm"))
@@ -1026,7 +1022,6 @@ func jitAddFunction() throws {
     let main = module.addFunction("main", type: mainType)
     let entry = main.appendBasicBlock("entry")
     let ba = ctx.blockAddress(function: main, block: entry)
-    #expect(ba is BlockAddress)
     #expect(ba.function?.name == "main")
     #expect(ba.basicBlock?.name == "entry")
 }
@@ -1062,13 +1057,12 @@ func jitAddFunction() throws {
     let builder = Builder(in: ctx)
     builder.positionAtEnd(of: entry)
     let ba = ctx.blockAddress(function: main, block: indirect)
-    let callBr = builder.buildCallBr(asm, args: [ba], default: normal, indirectDests: [indirect])
+    builder.buildCallBr(asm, args: [ba], default: normal, indirectDests: [indirect])
     builder.positionAtEnd(of: normal)
     builder.buildRet(ctx.constantInt(0, type: i32))
     builder.positionAtEnd(of: indirect)
     builder.buildRet(ctx.constantInt(1, type: i32))
 
-    #expect(callBr is CallBrInst)
     let ir = module.irString
     #expect(ir.contains("callbr"))
     #expect(ir.contains("asm sideeffect"))
@@ -1196,7 +1190,7 @@ func jitAddFunction() throws {
     let lpadBlock = main.appendBasicBlock("lpad")
     let builder = Builder(in: ctx)
     builder.positionAtEnd(of: entry)
-    let inv = builder.buildInvoke(callee, [], then: normal, catch: lpadBlock)
+    builder.buildInvoke(callee, [], then: normal, catch: lpadBlock)
     builder.positionAtEnd(of: normal)
     builder.buildRet(ctx.constantInt(0, type: i32))
     builder.positionAtEnd(of: lpadBlock)
@@ -1206,8 +1200,6 @@ func jitAddFunction() throws {
     lp.isCleanup = true
     builder.buildResume(lp)
 
-    #expect(inv is InvokeInst)
-    #expect(lp is LandingPadInst)
     #expect(lp.clauseCount == 1)
     #expect(lp.isCleanup)
     #expect(main.personality?.ref == person.ref)
@@ -1309,7 +1301,6 @@ func jitAddFunction() throws {
 
 @Test func typeSystemDetails() throws {
     let ctx = Context()
-    let module = Module(name: "types", in: ctx)
     let i32 = ctx.int32
     let ptr = ctx.pointerType()
 
@@ -1443,9 +1434,7 @@ func jitAddFunction() throws {
     let i32 = ctx.int32
 
     let poison = ctx.poison(i32)
-    #expect(poison is PoisonValue)
     let undef = ctx.undef(i32)
-    #expect(undef is UndefValue)
 
     let fp = ctx.constantFP(ofString: "3.14", type: ctx.double)
     #expect(abs(fp.doubleValue - 3.14) < 0.001)
@@ -1692,8 +1681,7 @@ func jitAddFunction() throws {
     rmw.binOp = LLVMAtomicRMWBinOpAdd
     #expect(rmw.binOp == LLVMAtomicRMWBinOpAdd)
 
-    let fence = builder.buildFence(ordering: LLVMAtomicOrderingRelease)
-    #expect(fence is FenceInst)
+    builder.buildFence(ordering: LLVMAtomicOrderingRelease)
 
     builder.buildRet(ctx.constantInt(0, type: i32))
     let ir = module.irString

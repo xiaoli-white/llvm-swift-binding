@@ -1,6 +1,6 @@
 import cLLVM
 
-public extension Module {
+extension Module {
     public func link(_ source: Module) throws {
         let result = LLVMLinkModules2(ref, source.ref)
         if result != 0 {
