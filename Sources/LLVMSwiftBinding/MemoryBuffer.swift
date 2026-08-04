@@ -15,6 +15,19 @@ final class MemoryBuffer {
         }
     }
 
+    var bytes: [UInt8] {
+        let size = LLVMGetBufferSize(ref)
+        guard size > 0, let ptr = LLVMGetBufferStart(ref) else { return [] }
+        return UnsafeBufferPointer(start: ptr, count: size).map { UInt8(bitPattern: $0) }
+    }
+
+    var string: String? {
+        let size = LLVMGetBufferSize(ref)
+        guard size > 0, let ptr = LLVMGetBufferStart(ref) else { return nil }
+        let bytes = UnsafeBufferPointer(start: ptr, count: size).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
     static func fromString(_ str: String, bufferName: String = "") -> MemoryBuffer {
         let ref = str.withCString { ptr in
             LLVMCreateMemoryBufferWithMemoryRangeCopy(ptr, str.utf8.count, bufferName)

@@ -304,6 +304,13 @@ final class Context {
         return Metadata(ref: ref!)
     }
 
+    func mdString(_ str: String) -> Metadata {
+        let ref = str.withCString { strPtr in
+            LLVMMDStringInContext2(self.ref, strPtr, str.utf8.count)
+        }
+        return Metadata(ref: ref!)
+    }
+
     func metadataAsValue(_ metadata: Metadata) -> Value {
         Value(ref: LLVMMetadataAsValue(self.ref, metadata.ref), context: self)
     }

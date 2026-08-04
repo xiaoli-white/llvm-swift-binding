@@ -25,6 +25,10 @@ final class Module {
         LLVMDumpModule(ref)
     }
 
+    func clone() -> Module {
+        Module(ref: LLVMCloneModule(ref), context: context)
+    }
+
     var irString: String {
         let ptr = LLVMPrintModuleToString(ref)!
         defer { LLVMDisposeMessage(ptr) }

@@ -1477,5 +1477,84 @@ func jitAddFunction() throws {
     #expect(ee.globalValueAddress("g") != 0)
     ee.runStaticDestructors()
 }
+
+@Test func valueUseIteration() throws {
+    let ctx = Context()
+    let module = Module(name: "useiter", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let p0 = main.parameter(at: 0)
+    let p1 = main.parameter(at: 1)
+    let sum = builder.buildAdd(p0, p1, name: "s")
+    builder.buildRet(sum)
+
+    #expect(p0.useCount == 1)
+    #expect(p1.useCount == 1)
+    #expect(sum.useCount == 1)
+    #expect(sum.operandUser(at: 0)?.ref == sum.ref)
+    #expect(sum.operandUser(at: 1)?.ref == sum.ref)
+}
+
+@Test func instructionOperations() throws {
+    let ctx = Context()
+    let module = Module(name: "instops", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let add = builder.buildAdd(main.parameter(at: 0), ctx.constantInt(1, type: i32), name: "a")
+    let ret = builder.buildRet(add)
+
+    #expect(add.parentBlock?.ref == entry.ref)
+    #expect(ret.parentBlock?.ref == entry.ref)
+    let cloned = add.clone()
+    #expect(cloned != nil)
+    #expect(cloned?.ref != add.ref)
+    try module.verify()
+}
+
+@Test func moduleCloneAndBitcode() throws {
+    let ctx = Context()
+    let module = Module(name: "clone", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(main.parameter(at: 0))
+
+    let cloned = module.clone()
+    #expect(cloned.ref != module.ref)
+    #expect(cloned.irString.contains("define i32 @main"))
+    #expect(cloned.function(named: "main") != nil)
+
+    let buf = module.writeBitcodeToMemoryBuffer()
+    #expect(!buf.bytes.isEmpty)
+    let restored = try Module.parseBitcode(buf.bytes, in: ctx)
+    #expect(restored.function(named: "main") != nil)
+    #expect(restored.irString.contains("define i32 @main"))
+    try restored.verify()
+}
+
+@Test func metadataKinds() throws {
+    let ctx = Context()
+    let module = Module(name: "mdkinds", in: ctx)
+    let di = DIBuilder(module: module)
+
+    let file = di.createFile("f.c", directory: "/tmp")
+    let cu = di.createCompileUnit(language: LLVMDWARFSourceLanguageC, file: file, producer: "p")
+    let mdStr = ctx.mdString("hello")
+
+    #expect(mdStr.kind == LLVMMDStringMetadataKind)
+    #expect(file.kind == LLVMDIFileMetadataKind)
+    #expect(cu.kind == LLVMDICompileUnitMetadataKind)
+}
 }
 

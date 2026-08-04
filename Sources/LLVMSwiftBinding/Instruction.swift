@@ -123,6 +123,24 @@ class Instruction: Value {
         let bytes = UnsafeBufferPointer(start: ptr, count: Int(length)).map { UInt8(bitPattern: $0) }
         return String(decoding: bytes, as: UTF8.self)
     }
+
+    var parentBlock: BasicBlock? {
+        guard let blockRef = LLVMGetInstructionParent(ref) else { return nil }
+        guard let fnRef = LLVMGetBasicBlockParent(blockRef) else { return nil }
+        let fnModule: Module
+        if let module {
+            fnModule = module
+        } else {
+            fnModule = Module(ref: LLVMGetGlobalParent(fnRef)!, context: context)
+            fnModule.ownsRef = false
+        }
+        return BasicBlock(ref: blockRef, function: Function(ref: fnRef, module: fnModule), module: fnModule)
+    }
+
+    func clone() -> Instruction? {
+        guard let ref = LLVMInstructionClone(ref) else { return nil }
+        return Instruction.wrap(ref, context: context, module: module)
+    }
 }
 
 final class ReturnInst: Instruction {}

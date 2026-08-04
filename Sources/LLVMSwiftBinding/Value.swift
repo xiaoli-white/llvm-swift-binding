@@ -70,6 +70,22 @@ class Value {
         return result
     }
 
+    var useCount: UInt32 {
+        var count: UInt32 = 0
+        var current: LLVMUseRef? = LLVMGetFirstUse(ref)
+        while let use = current {
+            count += 1
+            current = LLVMGetNextUse(use)
+        }
+        return count
+    }
+
+    func operandUser(at index: UInt32) -> Value? {
+        guard let useRef = LLVMGetOperandUse(ref, index) else { return nil }
+        guard let user = LLVMGetUser(useRef) else { return nil }
+        return Value(ref: user, context: context, module: module)
+    }
+
     func setMetadata(kind: UInt32, _ node: Value?) {
         LLVMSetMetadata(ref, kind, node?.ref)
     }

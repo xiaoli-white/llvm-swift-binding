@@ -431,4 +431,8 @@ final class Metadata {
     var tag: UInt16 {
         LLVMGetDINodeTag(ref)
     }
+
+    var kind: LLVMMetadataKind {
+        LLVMGetMetadataKind(ref)
+    }
 }
