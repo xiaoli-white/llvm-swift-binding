@@ -7,6 +7,7 @@ private let _initializeTargets: Void = {
     shim_initialize_all_target_infos()
     shim_initialize_all_target_mcs()
     shim_initialize_all_asm_printers()
+    shim_initialize_all_disassemblers()
 }()
 
 final class Target {

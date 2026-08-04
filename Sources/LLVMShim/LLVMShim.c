@@ -20,3 +20,7 @@ void shim_initialize_all_asm_printers(void) {
 void shim_initialize_native_target(void) {
     LLVMInitializeNativeTarget();
 }
+
+void shim_initialize_all_disassemblers(void) {
+    LLVMInitializeAllDisassemblers();
+}

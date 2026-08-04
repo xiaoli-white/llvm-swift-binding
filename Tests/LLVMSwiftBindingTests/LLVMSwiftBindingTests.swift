@@ -498,5 +498,51 @@ func jitAddFunction() throws {
     #expect(ir.contains("!DIDerivedType"))
     #expect(ir.contains("!DICompositeType"))
 }
+
+@Test func verifyModule() throws {
+    let ctx = Context()
+    let module = Module(name: "verify", in: ctx)
+    let i32 = ctx.int32
+    let funcType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: funcType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    try module.verify()
+    #expect(main.verify())
+}
+
+@Test func disassembleCode() throws {
+    let triple = TargetMachine.defaultTriple
+    guard let disasm = Disassembler(triple: triple) else {
+        Issue.record("failed to create disassembler")
+        return
+    }
+    let bytes: [UInt8] = [0xb8, 0x2a, 0x00, 0x00, 0x00, 0xc3]
+    let instructions = disasm.disassemble(bytes)
+    #expect(instructions.count == 2)
+    #expect(instructions[0].contains("42") || instructions[0].contains("eax"))
+    #expect(instructions[1].contains("ret"))
+}
+
+@Test func executionEngine() throws {
+    let ctx = Context()
+    let module = Module(name: "ee", in: ctx)
+    let i32 = ctx.int32
+    let funcType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: funcType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    TargetMachine.initializeAllTargets()
+    let ee = try ExecutionEngine(module: module)
+    let result = ee.runFunction(main)?.toInt(isSigned: false) ?? 0
+    #expect(result == 42)
+    #expect(ee.functionAddress("main") != 0)
+}
 }
 
