@@ -19,6 +19,19 @@ class Value {
         get { String(cString: LLVMGetValueName(ref)) }
         set { LLVMSetValueName(ref, newValue) }
     }
+
+    var hasMetadata: Bool {
+        LLVMHasMetadata(ref) != 0
+    }
+
+    func setMetadata(kind: UInt32, _ node: Value?) {
+        LLVMSetMetadata(ref, kind, node?.ref)
+    }
+
+    func getMetadata(kind: UInt32) -> Value? {
+        guard let ref = LLVMGetMetadata(ref, kind) else { return nil }
+        return Value(ref: ref, context: context, module: module)
+    }
 }
 
 final class Argument: Value {

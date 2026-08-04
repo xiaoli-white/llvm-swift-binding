@@ -624,5 +624,109 @@ func jitAddFunction() throws {
 
     try module.verify()
 }
+
+@Test func debugGlobalVariable() throws {
+    let ctx = Context()
+    let module = Module(name: "dbgglobal", in: ctx)
+    let i32 = ctx.int32
+
+    let di = DIBuilder(module: module)
+    let file = di.createFile("test.c", directory: "/tmp")
+    let cu = di.createCompileUnit(
+        language: LLVMDWARFSourceLanguageC,
+        file: file,
+        producer: "test",
+        isOptimized: false
+    )
+    let intType = di.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
+
+    let expr = di.createExpression([])
+    let gve = di.createGlobalVariableExpression(
+        scope: cu,
+        name: "answer",
+        file: file,
+        line: 1,
+        type: intType,
+        isLocalToUnit: true,
+        expr: expr
+    )
+
+    let global = module.addGlobal("answer", type: i32)
+    global.initializer = ctx.constantInt(42, type: i32)
+    global.addDebugInfo(gve)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    let subType = di.createSubroutineType(file: file, returnTypes: [intType])
+    let subprogram = di.createFunction(
+        scope: cu, name: "main", file: file, line: 1,
+        subroutineType: subType, isLocalToUnit: true, isDefinition: true, scopeLine: 1
+    )
+    main.setSubprogram(subprogram)
+
+    di.finalize()
+
+    let ir = module.irString
+    #expect(ir.contains("!DIGlobalVariable"))
+    #expect(ir.contains("!DIGlobalVariableExpression"))
+    #expect(ir.contains("!DIExpression"))
+}
+
+@Test func dbgValueRecordAndNamedMetadata() throws {
+    let ctx = Context()
+    let module = Module(name: "dbgval", in: ctx)
+    let i32 = ctx.int32
+
+    let di = DIBuilder(module: module)
+    let file = di.createFile("test.c", directory: "/tmp")
+    let cu = di.createCompileUnit(
+        language: LLVMDWARFSourceLanguageC,
+        file: file,
+        producer: "test",
+        isOptimized: false
+    )
+    let intType = di.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+
+    let localVar = di.createParameterVariable(
+        scope: cu, name: "x", argNo: 1, file: file, line: 1, type: intType
+    )
+    let loc = di.createDebugLocation(line: 2, column: 3, scope: cu)
+    di.insertDbgValueRecordAtEnd(
+        main.parameter(at: 0),
+        diVar: localVar,
+        expr: di.createExpression([]),
+        location: loc,
+        block: entry
+    )
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    let subType = di.createSubroutineType(file: file, returnTypes: [intType])
+    let subprogram = di.createFunction(
+        scope: cu, name: "main", file: file, line: 1,
+        subroutineType: subType, isLocalToUnit: true, isDefinition: true, scopeLine: 1
+    )
+    main.setSubprogram(subprogram)
+    di.finalize()
+
+    let ir = module.irString
+    #expect(ir.contains("!DILocalVariable"))
+    #expect(ir.contains("!DILocation"))
+
+    module.addNamedMetadataOperand("llvm.module.flags", ctx.metadataAsValue(ctx.mdNode([])))
+    #expect(module.namedMetadataOperandCount("llvm.module.flags") == 1)
+    #expect(module.namedMetadataOperands("llvm.module.flags").count == 1)
+    #expect(module.irString.contains("llvm.module.flags"))
+}
 }
 

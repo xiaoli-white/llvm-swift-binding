@@ -290,6 +290,135 @@ final class DIBuilder {
         }
         return Metadata(ref: metaRef!)
     }
+
+    func createExpression(_ ops: [UInt64]) -> Metadata {
+        var ops = ops
+        let metaRef = ops.withUnsafeMutableBufferPointer { buffer in
+            LLVMDIBuilderCreateExpression(ref, buffer.baseAddress, buffer.count)
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createConstantValueExpression(_ value: UInt64) -> Metadata {
+        let metaRef = LLVMDIBuilderCreateConstantValueExpression(ref, value)
+        return Metadata(ref: metaRef!)
+    }
+
+    func getOrCreateArray(_ elements: [Metadata]) -> Metadata {
+        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        let metaRef = elems.withUnsafeMutableBufferPointer { buffer in
+            LLVMDIBuilderGetOrCreateArray(ref, buffer.baseAddress, buffer.count)
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func getOrCreateSubrange(lowerBound: Int64, count: Int64) -> Metadata {
+        let metaRef = LLVMDIBuilderGetOrCreateSubrange(ref, lowerBound, count)
+        return Metadata(ref: metaRef!)
+    }
+
+    func createGlobalVariableExpression(scope: Metadata,
+                                        name: String,
+                                        linkageName: String = "",
+                                        file: Metadata,
+                                        line: UInt32,
+                                        type: Metadata,
+                                        isLocalToUnit: Bool = true,
+                                        expr: Metadata,
+                                        decl: Metadata? = nil,
+                                        alignInBits: UInt32 = 0) -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            linkageName.withCString { linkagePtr in
+                LLVMDIBuilderCreateGlobalVariableExpression(
+                    ref, scope.ref,
+                    namePtr, name.utf8.count,
+                    linkagePtr, linkageName.utf8.count,
+                    file.ref, line, type.ref,
+                    isLocalToUnit ? 1 : 0,
+                    expr.ref, decl?.ref, alignInBits
+                )
+            }
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func insertDbgValueRecordAtEnd(_ value: Value,
+                                   diVar: Metadata,
+                                   expr: Metadata,
+                                   location: Metadata,
+                                   block: BasicBlock) {
+        LLVMDIBuilderInsertDbgValueRecordAtEnd(
+            ref, value.ref, diVar.ref, expr.ref, location.ref, block.ref
+        )
+    }
+
+    func createModule(scope: Metadata,
+                      name: String,
+                      configMacros: String = "",
+                      includePath: String = "",
+                      apiNotesFile: String = "") -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            configMacros.withCString { macrosPtr in
+                includePath.withCString { includePtr in
+                    apiNotesFile.withCString { apiPtr in
+                        LLVMDIBuilderCreateModule(
+                            ref, scope.ref,
+                            namePtr, name.utf8.count,
+                            macrosPtr, configMacros.utf8.count,
+                            includePtr, includePath.utf8.count,
+                            apiPtr, apiNotesFile.utf8.count
+                        )
+                    }
+                }
+            }
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createNameSpace(scope: Metadata, name: String, exportSymbols: Bool = false) -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            LLVMDIBuilderCreateNameSpace(ref, scope.ref, namePtr, name.utf8.count, exportSymbols ? 1 : 0)
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createEnumerator(name: String, value: Int64, isUnsigned: Bool = false) -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            LLVMDIBuilderCreateEnumerator(ref, namePtr, name.utf8.count, value, isUnsigned ? 1 : 0)
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createEnumerationType(scope: Metadata,
+                               name: String,
+                               file: Metadata,
+                               line: UInt32,
+                               sizeInBits: UInt64,
+                               alignInBits: UInt32,
+                               elements: [Metadata],
+                               classType: Metadata? = nil) -> Metadata {
+        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        let metaRef = name.withCString { namePtr in
+            elems.withUnsafeMutableBufferPointer { buffer in
+                LLVMDIBuilderCreateEnumerationType(
+                    ref, scope.ref, namePtr, name.utf8.count,
+                    file.ref, line, sizeInBits, alignInBits,
+                    buffer.baseAddress, UInt32(elements.count), classType?.ref
+                )
+            }
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createLexicalBlockFile(scope: Metadata, file: Metadata, discriminator: UInt32) -> Metadata {
+        let metaRef = LLVMDIBuilderCreateLexicalBlockFile(ref, scope.ref, file.ref, discriminator)
+        return Metadata(ref: metaRef!)
+    }
+
+    func createImportedModuleFromNamespace(scope: Metadata, namespace: Metadata, file: Metadata, line: UInt32) -> Metadata {
+        let metaRef = LLVMDIBuilderCreateImportedModuleFromNamespace(ref, scope.ref, namespace.ref, file.ref, line)
+        return Metadata(ref: metaRef!)
+    }
 }
 
 final class Metadata {
@@ -297,5 +426,9 @@ final class Metadata {
 
     init(ref: LLVMMetadataRef) {
         self.ref = ref
+    }
+
+    var tag: UInt16 {
+        LLVMGetDINodeTag(ref)
     }
 }

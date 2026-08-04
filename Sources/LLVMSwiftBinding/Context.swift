@@ -103,6 +103,18 @@ final class Context {
         return wrapType(ref!) as! ArrayType
     }
 
+    func mdNode(_ elements: [Metadata]) -> Metadata {
+        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        let ref = elems.withUnsafeMutableBufferPointer { buffer in
+            LLVMMDNodeInContext2(self.ref, buffer.baseAddress, buffer.count)
+        }
+        return Metadata(ref: ref!)
+    }
+
+    func metadataAsValue(_ metadata: Metadata) -> Value {
+        Value(ref: LLVMMetadataAsValue(self.ref, metadata.ref), context: self)
+    }
+
     func vectorType(elementType: Type, count: UInt32) -> VectorType {
         let ref = LLVMVectorType(elementType.ref, count)
         return wrapType(ref!) as! VectorType

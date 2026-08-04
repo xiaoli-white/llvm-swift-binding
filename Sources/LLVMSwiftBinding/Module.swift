@@ -45,4 +45,28 @@ final class Module {
         get { String(cString: LLVMGetTarget(ref)!) }
         set { LLVMSetTarget(ref, newValue) }
     }
+
+    func addNamedMetadataOperand(_ name: String, _ node: Value) {
+        name.withCString { namePtr in
+            LLVMAddNamedMetadataOperand(ref, namePtr, node.ref)
+        }
+    }
+
+    func namedMetadataOperandCount(_ name: String) -> UInt32 {
+        name.withCString { namePtr in
+            LLVMGetNamedMetadataNumOperands(ref, namePtr)
+        }
+    }
+
+    func namedMetadataOperands(_ name: String) -> [Value] {
+        let count = Int(namedMetadataOperandCount(name))
+        guard count > 0 else { return [] }
+        var nodes = [LLVMValueRef?](repeating: nil, count: count)
+        nodes.withUnsafeMutableBufferPointer { buffer in
+            name.withCString { namePtr in
+                LLVMGetNamedMetadataOperands(ref, namePtr, buffer.baseAddress)
+            }
+        }
+        return nodes.map { Value(ref: $0!, context: context, module: self) }
+    }
 }

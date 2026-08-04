@@ -32,4 +32,24 @@ final class GlobalVariable: Value {
         get { LLVMGetAlignment(ref) }
         set { LLVMSetAlignment(ref, newValue) }
     }
+
+    func addDebugInfo(_ gve: Metadata) {
+        LLVMGlobalAddDebugInfo(ref, gve.ref)
+    }
+
+    func setMetadata(kind: UInt32, _ metadata: Metadata?) {
+        LLVMGlobalSetMetadata(ref, kind, metadata?.ref)
+    }
+
+    func addMetadata(kind: UInt32, _ metadata: Metadata) {
+        LLVMGlobalAddMetadata(ref, kind, metadata.ref)
+    }
+
+    func eraseMetadata(kind: UInt32) {
+        LLVMGlobalEraseMetadata(ref, kind)
+    }
+
+    func clearMetadata() {
+        LLVMGlobalClearMetadata(ref)
+    }
 }
