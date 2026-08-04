@@ -196,6 +196,21 @@ public final class Module {
         }
     }
 
+    public var namedMetadataNames: [String] {
+        var result: [String] = []
+        guard let first = LLVMGetFirstNamedMetadata(ref) else { return [] }
+        var current: LLVMNamedMDNodeRef? = first
+        while let node = current {
+            var length: Int = 0
+            if let ptr = LLVMGetNamedMetadataName(node, &length) {
+                let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+                result.append(String(decoding: bytes, as: UTF8.self))
+            }
+            current = LLVMGetNextNamedMetadata(node)
+        }
+        return result
+    }
+
     public func namedMetadataOperandCount(_ name: String) -> UInt32 {
         name.withCString { namePtr in
             LLVMGetNamedMetadataNumOperands(ref, namePtr)

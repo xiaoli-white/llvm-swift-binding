@@ -2051,5 +2051,38 @@ func jitAddFunction() throws {
     #expect(abs(value - 1.5) < 1e-12)
     #expect(isFinite)
 }
+
+@Test func valueKindNames() throws {
+    let ctx = Context()
+    let module = Module(name: "kinds", in: ctx)
+    let i32 = ctx.int32
+    let fnType = ctx.functionType(returnType: i32)
+    let fn = module.addFunction("f", type: fnType)
+    let entry = fn.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+
+    #expect(fn.kindName == "function")
+    #expect(ctx.constantInt(1, type: i32).kindName == "constant-int")
+    #expect(ctx.poison(i32).kindName == "poison")
+    #expect(ctx.constantPointerNull(ctx.pointerType()).kindName == "constant-pointer-null")
+}
+
+@Test func namedMetadataTraversal() throws {
+    let ctx = Context()
+    let module = Module(name: "mdnames", in: ctx)
+
+    let md1 = ctx.mdString("first")
+    module.addNamedMetadataOperand("llvm.dbg.cu", ctx.metadataAsValue(md1))
+    let md2 = ctx.mdString("second")
+    module.addNamedMetadataOperand("custom.meta", ctx.metadataAsValue(md2))
+
+    let names = module.namedMetadataNames
+    #expect(names.contains("llvm.dbg.cu"))
+    #expect(names.contains("custom.meta"))
+    #expect(module.namedMetadataOperandCount("llvm.dbg.cu") == 1)
+    #expect(module.namedMetadataOperands("custom.meta").count == 1)
+}
 }
 

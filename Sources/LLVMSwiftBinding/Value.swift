@@ -79,6 +79,39 @@ public class Value {
         LLVMGetValueKind(ref)
     }
 
+    public var kindName: String {
+        switch valueKind {
+        case LLVMArgumentValueKind: return "argument"
+        case LLVMBasicBlockValueKind: return "basic-block"
+        case LLVMMemoryUseValueKind: return "memory-use"
+        case LLVMMemoryDefValueKind: return "memory-def"
+        case LLVMMemoryPhiValueKind: return "memory-phi"
+        case LLVMFunctionValueKind: return "function"
+        case LLVMGlobalAliasValueKind: return "global-alias"
+        case LLVMGlobalIFuncValueKind: return "global-ifunc"
+        case LLVMGlobalVariableValueKind: return "global-variable"
+        case LLVMBlockAddressValueKind: return "block-address"
+        case LLVMConstantExprValueKind: return "constant-expr"
+        case LLVMConstantArrayValueKind: return "constant-array"
+        case LLVMConstantStructValueKind: return "constant-struct"
+        case LLVMConstantVectorValueKind: return "constant-vector"
+        case LLVMUndefValueValueKind: return "undef"
+        case LLVMConstantAggregateZeroValueKind: return "constant-aggregate-zero"
+        case LLVMConstantDataArrayValueKind: return "constant-data-array"
+        case LLVMConstantDataVectorValueKind: return "constant-data-vector"
+        case LLVMConstantIntValueKind: return "constant-int"
+        case LLVMConstantFPValueKind: return "constant-fp"
+        case LLVMConstantPointerNullValueKind: return "constant-pointer-null"
+        case LLVMConstantTokenNoneValueKind: return "constant-token-none"
+        case LLVMMetadataAsValueValueKind: return "metadata-as-value"
+        case LLVMInlineAsmValueKind: return "inline-asm"
+        case LLVMInstructionValueKind: return "instruction"
+        case LLVMPoisonValueValueKind: return "poison"
+        case LLVMConstantTargetNoneValueKind: return "constant-target-none"
+        default: return "unknown"
+        }
+    }
+
     public var numOperands: UInt32 {
         UInt32(LLVMGetNumOperands(ref))
     }
