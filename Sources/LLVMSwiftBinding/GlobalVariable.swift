@@ -24,6 +24,16 @@ final class GlobalVariable: Value {
         set { LLVMSetThreadLocal(ref, newValue ? 1 : 0) }
     }
 
+    var isGlobalConstant: Bool {
+        get { isConstant }
+        set { LLVMSetGlobalConstant(ref, newValue ? 1 : 0) }
+    }
+
+    var tlsModel: LLVMThreadLocalMode {
+        get { LLVMGetThreadLocalMode(ref) }
+        set { LLVMSetThreadLocalMode(ref, newValue) }
+    }
+
     var section: String {
         get {
             guard let ptr = LLVMGetSection(ref) else { return "" }

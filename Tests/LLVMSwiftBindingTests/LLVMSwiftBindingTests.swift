@@ -1846,5 +1846,74 @@ func jitAddFunction() throws {
     #expect(ir.contains("shufflevector"))
     try module.verify()
 }
+
+@Test func constantExprOpcode() throws {
+    let ctx = Context()
+    let i32 = ctx.int32
+    let five = ctx.constantInt(5, type: i32)
+    let three = ctx.constantInt(3, type: i32)
+
+    let notExpr = ctx.constantNot(five)
+    if let ce = notExpr as? ConstantExpr {
+        #expect(ce.opcode == LLVMXor)
+    }
+
+    let xorExpr = ctx.constantXor(five, three)
+    if let ce = xorExpr as? ConstantExpr {
+        #expect(ce.opcode == LLVMXor)
+        #expect(ce.numOperands == 2)
+    }
+
+    let intToPtr = ctx.constantIntToPtr(five, to: ctx.pointerType())
+    if let ce = intToPtr as? ConstantExpr {
+        #expect(ce.opcode == LLVMIntToPtr)
+    }
+}
+
+@Test func globalVariableMore() throws {
+    let ctx = Context()
+    let module = Module(name: "gvmore", in: ctx)
+    let i32 = ctx.int32
+    let gv = module.addGlobal("g", type: i32)
+
+    #expect(!gv.isGlobalConstant)
+    gv.isGlobalConstant = true
+    gv.initializer = ctx.constantInt(1, type: i32)
+    #expect(gv.isGlobalConstant)
+
+    gv.isThreadLocal = true
+    gv.tlsModel = LLVMLocalDynamicTLSModel
+    #expect(gv.tlsModel == LLVMLocalDynamicTLSModel)
+
+    let ir = module.irString
+    #expect(ir.contains("constant"))
+    #expect(ir.contains("localdynamic"))
+    try module.verify()
+}
+
+@Test func builderMemoryIntrinsics() throws {
+    let ctx = Context()
+    let module = Module(name: "memintr", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: ctx.void)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let dest = builder.buildAlloca(i32, name: "d")
+    let src = builder.buildAlloca(i32, name: "s")
+    builder.buildStore(ctx.constantInt(7, type: i32), to: src)
+    let len = ctx.constantInt(4, type: i32)
+    builder.buildMemSet(dest, ctx.constantInt(0, type: ctx.int8), len, alignment: 4)
+    builder.buildMemCpy(dest, destAlign: 4, src, sourceAlign: 4, len)
+    builder.buildMemMove(dest, destAlign: 4, src, sourceAlign: 4, len)
+    builder.buildRetVoid()
+
+    let ir = module.irString
+    #expect(ir.contains("llvm.memset"))
+    #expect(ir.contains("llvm.memcpy"))
+    #expect(ir.contains("llvm.memmove"))
+    try module.verify()
+}
 }
 

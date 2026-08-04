@@ -481,6 +481,24 @@ final class Builder {
     }
 
     @discardableResult
+    func buildMemSet(_ ptr: Value, _ value: Value, _ len: Value, alignment: UInt32 = 0) -> CallInst {
+        let inst = LLVMBuildMemSet(ref, ptr.ref, value.ref, len.ref, alignment)!
+        return CallInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildMemCpy(_ dest: Value, destAlign: UInt32 = 0, _ source: Value, sourceAlign: UInt32 = 0, _ len: Value) -> CallInst {
+        let inst = LLVMBuildMemCpy(ref, dest.ref, destAlign, source.ref, sourceAlign, len.ref)!
+        return CallInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildMemMove(_ dest: Value, destAlign: UInt32 = 0, _ source: Value, sourceAlign: UInt32 = 0, _ len: Value) -> CallInst {
+        let inst = LLVMBuildMemMove(ref, dest.ref, destAlign, source.ref, sourceAlign, len.ref)!
+        return CallInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
     func buildCallBr(_ callee: Value, args: [Value], default dest: BasicBlock, indirectDests: [BasicBlock], bundles: [OperandBundle] = [], name: String = "") -> CallBrInst {
         let calleeType: Type
         if LLVMGetValueKind(callee.ref) == LLVMInlineAsmValueKind {

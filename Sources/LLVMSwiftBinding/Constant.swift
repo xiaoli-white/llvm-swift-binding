@@ -60,7 +60,11 @@ final class ConstantDataArray: Constant {
     }
 }
 
-final class ConstantExpr: Constant {}
+final class ConstantExpr: Constant {
+    var opcode: LLVMOpcode {
+        LLVMGetConstOpcode(ref)
+    }
+}
 
 final class ConstantVector: Constant {}
 
