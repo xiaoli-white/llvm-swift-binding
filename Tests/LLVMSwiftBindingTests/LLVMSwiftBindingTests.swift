@@ -1453,5 +1453,29 @@ func jitAddFunction() throws {
     let vector = ctx.constantVector([poison, undef])
     #expect(vector.aggregateElement(at: 1) is UndefValue)
 }
+
+@Test func executionEngineGlobals() throws {
+    let ctx = Context()
+    let module = Module(name: "eeglobals", in: ctx)
+    let i32 = ctx.int32
+
+    let gv = module.addGlobal("g", type: i32)
+    gv.initializer = ctx.constantInt(7, type: i32)
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let load = builder.buildLoad(i32, gv, name: "v")
+    builder.buildRet(load)
+
+    let ee = try ExecutionEngine(module: module)
+    ee.runStaticConstructors()
+    let result = ee.runFunction(main)?.toInt(isSigned: false) ?? 0
+    #expect(result == 7)
+    #expect(ee.pointerToGlobal(gv) != nil)
+    #expect(ee.globalValueAddress("g") != 0)
+    ee.runStaticDestructors()
+}
 }
 
