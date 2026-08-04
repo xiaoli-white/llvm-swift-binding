@@ -40,6 +40,26 @@ class Value {
         LLVMIsPoison(ref) != 0
     }
 
+    var isDeclaration: Bool {
+        LLVMIsDeclaration(ref) != 0
+    }
+
+    var visibility: LLVMVisibility {
+        get { LLVMGetVisibility(ref) }
+        set { LLVMSetVisibility(ref, newValue) }
+    }
+
+    var dllStorageClass: LLVMDLLStorageClass {
+        get { LLVMGetDLLStorageClass(ref) }
+        set { LLVMSetDLLStorageClass(ref, newValue) }
+    }
+
+    var description: String {
+        let ptr = LLVMPrintValueToString(ref)!
+        defer { LLVMDisposeMessage(ptr) }
+        return String(cString: ptr)
+    }
+
     var valueKind: LLVMValueKind {
         LLVMGetValueKind(ref)
     }

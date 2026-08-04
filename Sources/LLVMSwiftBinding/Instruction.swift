@@ -161,9 +161,29 @@ final class BinaryOperator: Instruction {}
 
 final class AllocaInst: Instruction {}
 
-final class LoadInst: Instruction {}
+final class LoadInst: Instruction {
+    var isVolatile: Bool {
+        get { LLVMGetVolatile(ref) != 0 }
+        set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
+    }
 
-final class StoreInst: Instruction {}
+    var ordering: LLVMAtomicOrdering {
+        get { LLVMGetOrdering(ref) }
+        set { LLVMSetOrdering(ref, newValue) }
+    }
+}
+
+final class StoreInst: Instruction {
+    var isVolatile: Bool {
+        get { LLVMGetVolatile(ref) != 0 }
+        set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
+    }
+
+    var ordering: LLVMAtomicOrdering {
+        get { LLVMGetOrdering(ref) }
+        set { LLVMSetOrdering(ref, newValue) }
+    }
+}
 
 final class BranchInst: Instruction {}
 
@@ -267,9 +287,29 @@ final class UnreachableInst: Instruction {}
 
 final class FenceInst: Instruction {}
 
-final class AtomicRMWInst: Instruction {}
+final class AtomicRMWInst: Instruction {
+    var isVolatile: Bool {
+        get { LLVMGetVolatile(ref) != 0 }
+        set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
+    }
 
-final class AtomicCmpXchgInst: Instruction {}
+    var ordering: LLVMAtomicOrdering {
+        get { LLVMGetOrdering(ref) }
+        set { LLVMSetOrdering(ref, newValue) }
+    }
+
+    var binOp: LLVMAtomicRMWBinOp {
+        get { LLVMGetAtomicRMWBinOp(ref) }
+        set { LLVMSetAtomicRMWBinOp(ref, newValue) }
+    }
+}
+
+final class AtomicCmpXchgInst: Instruction {
+    var isVolatile: Bool {
+        get { LLVMGetVolatile(ref) != 0 }
+        set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
+    }
+}
 
 final class ExtractValueInst: Instruction {}
 

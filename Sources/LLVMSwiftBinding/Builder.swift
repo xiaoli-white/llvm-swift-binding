@@ -387,8 +387,20 @@ final class Builder {
     }
 
     @discardableResult
+    func buildFenceSyncScope(ordering: LLVMAtomicOrdering, scope: UInt32, name: String = "") -> FenceInst {
+        let inst = LLVMBuildFenceSyncScope(ref, ordering, scope, name)!
+        return FenceInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
     func buildAtomicRMW(_ op: LLVMAtomicRMWBinOp, _ ptr: Value, _ value: Value, ordering: LLVMAtomicOrdering, singleThread: Bool = false) -> AtomicRMWInst {
         let inst = LLVMBuildAtomicRMW(ref, op, ptr.ref, value.ref, ordering, singleThread ? 1 : 0)!
+        return AtomicRMWInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    func buildAtomicRMWSyncScope(_ op: LLVMAtomicRMWBinOp, _ ptr: Value, _ value: Value, ordering: LLVMAtomicOrdering, scope: UInt32) -> AtomicRMWInst {
+        let inst = LLVMBuildAtomicRMWSyncScope(ref, op, ptr.ref, value.ref, ordering, scope)!
         return AtomicRMWInst(ref: inst, context: context, module: currentModule)
     }
 

@@ -1663,5 +1663,94 @@ func jitAddFunction() throws {
     #expect(ctx.int32.contextRef == ctx.ref)
     #expect(ctx.pointerType().contextRef == ctx.ref)
 }
+
+@Test func instructionAtomicAttributes() throws {
+    let ctx = Context()
+    let module = Module(name: "atomic", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let gv = module.addGlobal("g", type: i32)
+    gv.initializer = ctx.constantInt(0, type: i32)
+
+    let load = builder.buildLoad(i32, gv, name: "l")
+    load.isVolatile = true
+    load.ordering = LLVMAtomicOrderingAcquire
+    #expect(load.isVolatile)
+    #expect(load.ordering == LLVMAtomicOrderingAcquire)
+
+    let store = builder.buildStore(ctx.constantInt(1, type: i32), to: gv)
+    store.isVolatile = true
+    #expect(store.isVolatile)
+
+    let rmw = builder.buildAtomicRMW(LLVMAtomicRMWBinOpXchg, gv, ctx.constantInt(5, type: i32), ordering: LLVMAtomicOrderingSequentiallyConsistent)
+    #expect(!rmw.isVolatile)
+    #expect(rmw.binOp == LLVMAtomicRMWBinOpXchg)
+    rmw.binOp = LLVMAtomicRMWBinOpAdd
+    #expect(rmw.binOp == LLVMAtomicRMWBinOpAdd)
+
+    let fence = builder.buildFence(ordering: LLVMAtomicOrderingRelease)
+    #expect(fence is FenceInst)
+
+    builder.buildRet(ctx.constantInt(0, type: i32))
+    let ir = module.irString
+    #expect(ir.contains("volatile"))
+    #expect(ir.contains("acquire"))
+    #expect(ir.contains("atomicrmw"))
+    #expect(ir.contains("fence"))
+    try module.verify()
+}
+
+@Test func globalValueAttributes() throws {
+    let ctx = Context()
+    let module = Module(name: "gvattrs2", in: ctx)
+    let i32 = ctx.int32
+    let fnType = ctx.functionType(returnType: i32)
+    let declared = module.addFunction("declared", type: fnType)
+    let defined = module.addFunction("defined", type: fnType)
+    let entry = defined.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+
+    #expect(declared.isDeclaration)
+    #expect(!defined.isDeclaration)
+
+    let gv = module.addGlobal("g", type: i32)
+    #expect(gv.isDeclaration)
+    gv.initializer = ctx.constantInt(1, type: i32)
+    #expect(!gv.isDeclaration)
+
+    let hiddenFn = module.addFunction("hiddenfn", type: fnType)
+    hiddenFn.visibility = LLVMHiddenVisibility
+    #expect(hiddenFn.visibility == LLVMHiddenVisibility)
+
+    let importFn = module.addFunction("importfn", type: fnType)
+    importFn.dllStorageClass = LLVMDLLImportStorageClass
+    #expect(importFn.dllStorageClass == LLVMDLLImportStorageClass)
+    let ir = module.irString
+    #expect(ir.contains("hidden"))
+    #expect(ir.contains("dllimport"))
+    try module.verify()
+}
+
+@Test func valuePrinting() throws {
+    let ctx = Context()
+    let module = Module(name: "print", in: ctx)
+    let i32 = ctx.int32
+
+    let c = ctx.constantInt(42, type: i32)
+    #expect(c.description.contains("42"))
+    #expect((c.type as? IntegerType)?.width == 32)
+
+    let fp = ctx.constantFP(3.5, type: ctx.double)
+    #expect(abs(fp.doubleValue - 3.5) < 1e-9)
+
+    let gv = module.addGlobal("g", type: i32)
+    #expect(gv.description.contains("g"))
+}
 }
 
