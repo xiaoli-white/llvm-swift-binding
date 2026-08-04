@@ -3,6 +3,7 @@ import cLLVM
 final class Module {
     let ref: LLVMModuleRef
     let context: Context
+    var ownsRef: Bool = true
 
     init(name: String, in context: Context) {
         self.ref = LLVMModuleCreateWithNameInContext(name, context.ref)!
@@ -15,7 +16,9 @@ final class Module {
     }
 
     deinit {
-        LLVMDisposeModule(ref)
+        if ownsRef {
+            LLVMDisposeModule(ref)
+        }
     }
 
     func dump() {

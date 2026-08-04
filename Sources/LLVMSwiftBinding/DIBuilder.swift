@@ -153,6 +153,143 @@ final class DIBuilder {
             ref, value.ref, diVar.ref, expr.ref, location.ref, block.ref
         )
     }
+
+    func createPointerType(_ pointee: Metadata,
+                           sizeInBits: UInt64,
+                           alignInBits: UInt32 = 0,
+                           addressSpace: UInt32 = 0,
+                           name: String = "") -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            LLVMDIBuilderCreatePointerType(
+                ref, pointee.ref, sizeInBits, alignInBits, addressSpace, namePtr, name.utf8.count
+            )
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createQualifiedType(tag: UInt32, type: Metadata) -> Metadata {
+        let metaRef = LLVMDIBuilderCreateQualifiedType(ref, tag, type.ref)
+        return Metadata(ref: metaRef!)
+    }
+
+    func createNullPtrType() -> Metadata {
+        let metaRef = LLVMDIBuilderCreateNullPtrType(ref)
+        return Metadata(ref: metaRef!)
+    }
+
+    func createTypedef(type: Metadata,
+                       name: String,
+                       file: Metadata,
+                       line: UInt32,
+                       scope: Metadata,
+                       alignInBits: UInt32 = 0) -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            LLVMDIBuilderCreateTypedef(
+                ref, type.ref, namePtr, name.utf8.count, file.ref, line, scope.ref, alignInBits
+            )
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createStructType(scope: Metadata,
+                          name: String,
+                          file: Metadata,
+                          line: UInt32,
+                          sizeInBits: UInt64,
+                          alignInBits: UInt32,
+                          flags: LLVMDIFlags = LLVMDIFlagZero,
+                          derivedFrom: Metadata? = nil,
+                          elements: [Metadata] = []) -> Metadata {
+        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        let metaRef = name.withCString { namePtr in
+            elems.withUnsafeMutableBufferPointer { buffer in
+                LLVMDIBuilderCreateStructType(
+                    ref, scope.ref, namePtr, name.utf8.count, file.ref, line,
+                    sizeInBits, alignInBits, flags, derivedFrom?.ref,
+                    buffer.baseAddress, UInt32(elements.count), 0, nil, "", 0
+                )
+            }
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createMemberType(scope: Metadata,
+                          name: String,
+                          file: Metadata,
+                          line: UInt32,
+                          sizeInBits: UInt64,
+                          alignInBits: UInt32,
+                          offsetInBits: UInt64,
+                          flags: LLVMDIFlags = LLVMDIFlagZero,
+                          type: Metadata) -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            LLVMDIBuilderCreateMemberType(
+                ref, scope.ref, namePtr, name.utf8.count, file.ref, line,
+                sizeInBits, alignInBits, offsetInBits, flags, type.ref
+            )
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createArrayType(size: UInt64,
+                         alignInBits: UInt32,
+                         elementType: Metadata,
+                         subscripts: [Metadata]) -> Metadata {
+        var subs: [LLVMMetadataRef?] = subscripts.map { $0.ref }
+        let metaRef = subs.withUnsafeMutableBufferPointer { buffer in
+            LLVMDIBuilderCreateArrayType(
+                ref, size, alignInBits, elementType.ref, buffer.baseAddress, UInt32(subscripts.count)
+            )
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createUnionType(scope: Metadata,
+                         name: String,
+                         file: Metadata,
+                         line: UInt32,
+                         sizeInBits: UInt64,
+                         alignInBits: UInt32,
+                         flags: LLVMDIFlags = LLVMDIFlagZero,
+                         elements: [Metadata] = []) -> Metadata {
+        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        let metaRef = name.withCString { namePtr in
+            elems.withUnsafeMutableBufferPointer { buffer in
+                LLVMDIBuilderCreateUnionType(
+                    ref, scope.ref, namePtr, name.utf8.count, file.ref, line,
+                    sizeInBits, alignInBits, flags, buffer.baseAddress,
+                    UInt32(elements.count), 0, "", 0
+                )
+            }
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createForwardDecl(tag: UInt32,
+                           name: String,
+                           scope: Metadata,
+                           file: Metadata,
+                           line: UInt32,
+                           sizeInBits: UInt64 = 0,
+                           alignInBits: UInt32 = 0,
+                           uniqueIdentifier: String = "") -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            uniqueIdentifier.withCString { uniquePtr in
+                LLVMDIBuilderCreateForwardDecl(
+                    ref, tag, namePtr, name.utf8.count, scope.ref, file.ref, line,
+                    0, sizeInBits, alignInBits, uniquePtr, uniqueIdentifier.utf8.count
+                )
+            }
+        }
+        return Metadata(ref: metaRef!)
+    }
+
+    func createUnspecifiedType(_ name: String) -> Metadata {
+        let metaRef = name.withCString { namePtr in
+            LLVMDIBuilderCreateUnspecifiedType(ref, namePtr, name.utf8.count)
+        }
+        return Metadata(ref: metaRef!)
+    }
 }
 
 final class Metadata {

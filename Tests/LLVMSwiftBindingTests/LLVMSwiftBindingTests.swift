@@ -376,4 +376,127 @@ func jitAddFunction() throws {
     pm.addAnalysisPasses(of: tm)
     pm.run(on: module)
 }
+
+@Test func moduleLinking() throws {
+    let ctx = Context()
+    let module = Module(name: "dest", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32)
+
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(builder.buildCall(module.addFunction("helper", type: mainType), [], name: "r"))
+
+    let source = Module(name: "src", in: ctx)
+    let helper = source.addFunction("helper", type: mainType)
+    let helperEntry = helper.appendBasicBlock("entry")
+    builder.positionAtEnd(of: helperEntry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    try module.link(source)
+    #expect(module.irString.contains("define i32 @helper()"))
+    #expect(module.irString.contains("call i32 @helper"))
 }
+
+@Test func comdatAndAttribute() throws {
+    let ctx = Context()
+    let module = Module(name: "comdat", in: ctx)
+    let i32 = ctx.int32
+
+    let comdat = module.getOrInsertComdat("mycomdat")
+    comdat.selectionKind = LLVMAnyComdatSelectionKind
+
+    let answer = module.addGlobal("answer", type: i32)
+    answer.initializer = ctx.constantInt(42, type: i32)
+    answer.comdat = comdat
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    main.addAttribute(.enumAttribute(10, in: ctx), at: AttributeIndex.functionIndex)
+    main.addAttribute(.stringAttribute("noinline", in: ctx), at: AttributeIndex.functionIndex)
+
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+
+    let ir = module.irString
+    #expect(ir.contains("$mycomdat"))
+    #expect(ir.contains("noinline"))
+    #expect(ir.contains("#"))
+
+    let attrs = main.attributes(at: AttributeIndex.functionIndex)
+    #expect(attrs.contains { $0.isString && $0.stringKind == "noinline" })
+}
+
+@Test func dataLayout() throws {
+    let ctx = Context()
+    let module = Module(name: "dl", in: ctx)
+    let i32 = ctx.int32
+
+    let dl = DataLayout(string: "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128")
+    module.dataLayout = dl
+
+    #expect(module.dataLayout.string.contains("i64:64"))
+    #expect(dl.sizeOfTypeInBits(i32) == 32)
+    #expect(dl.storeSizeOfType(i32) == 4)
+    #expect(dl.abiSizeOfType(i32) == 4)
+    #expect(dl.abiAlignmentOfType(i32) == 4)
+}
+
+@Test func debugInfoTypes() throws {
+    let ctx = Context()
+    let module = Module(name: "ditypes", in: ctx)
+
+    let di = DIBuilder(module: module)
+    let file = di.createFile("test.c", directory: "/tmp")
+    let cu = di.createCompileUnit(
+        language: LLVMDWARFSourceLanguageC,
+        file: file,
+        producer: "test",
+        isOptimized: false
+    )
+
+    let intType = di.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
+    let ptrType = di.createPointerType(intType, sizeInBits: 64)
+    let constType = di.createQualifiedType(tag: 0x26, type: intType)
+    let typedefType = di.createTypedef(type: intType, name: "myint", file: file, line: 1, scope: cu)
+    let structType = di.createStructType(
+        scope: cu,
+        name: "Point",
+        file: file,
+        line: 2,
+        sizeInBits: 64,
+        alignInBits: 32,
+        elements: [
+            di.createMemberType(
+                scope: cu, name: "x", file: file, line: 2,
+                sizeInBits: 32, alignInBits: 32, offsetInBits: 0, type: intType
+            )
+        ]
+    )
+    let subType = di.createSubroutineType(file: file, returnTypes: [typedefType, structType])
+    let subprogram = di.createFunction(
+        scope: cu, name: "main", file: file, line: 1,
+        subroutineType: subType, isLocalToUnit: true, isDefinition: true, scopeLine: 1
+    )
+
+    let i32 = ctx.int32
+    let mainFunc = module.addFunction("main", type: ctx.functionType(returnType: i32))
+    let entry = mainFunc.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(ctx.constantInt(42, type: i32))
+    mainFunc.setSubprogram(subprogram)
+
+    di.finalize()
+
+    let ir = module.irString
+    #expect(ir.contains("!DICompileUnit"))
+    #expect(ir.contains("!DIDerivedType"))
+    #expect(ir.contains("!DICompositeType"))
+}
+}
+
