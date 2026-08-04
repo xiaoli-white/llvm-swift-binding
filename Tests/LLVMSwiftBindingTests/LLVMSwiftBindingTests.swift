@@ -1999,5 +1999,57 @@ func jitAddFunction() throws {
     #expect(addrSpacePtr.addressSpace == 3)
     #expect(ctx.int32.width == 32)
 }
+
+@Test func functionPassManagerLifecycle() throws {
+    let ctx = Context()
+    let module = Module(name: "fpm", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(main.parameter(at: 0))
+
+    let fpm = PassManager(module: module)
+    fpm.initialize()
+    fpm.run(on: main)
+    fpm.finalize()
+    try module.verify()
+}
+
+@Test func atomicCmpXchgBuilder() throws {
+    let ctx = Context()
+    let module = Module(name: "cmpxchg", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let gv = module.addGlobal("g", type: i32)
+    gv.initializer = ctx.constantInt(0, type: i32)
+    let cmpxchg = builder.buildAtomicCmpXchg(gv, ctx.constantInt(0, type: i32), ctx.constantInt(1, type: i32), successOrdering: LLVMAtomicOrderingAcquire, failureOrdering: LLVMAtomicOrderingMonotonic)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+
+    #expect(cmpxchg.isVolatile == false)
+    let ir = module.irString
+    #expect(ir.contains("cmpxchg"))
+    try module.verify()
+}
+
+@Test func targetDescriptionAndConstantFPBits() throws {
+    TargetMachine.initializeAllTargets()
+    let triple = TargetMachine.defaultTriple
+    let target = try Target.fromTriple(triple)
+    #expect(!target.name.isEmpty)
+    #expect(!target.description.isEmpty)
+
+    let ctx = Context()
+    let fp = ctx.constantFP(1.5, type: ctx.double)
+    let (value, isFinite) = fp.doubleValueWithStatus
+    #expect(abs(value - 1.5) < 1e-12)
+    #expect(isFinite)
+}
 }
 

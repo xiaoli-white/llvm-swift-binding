@@ -26,6 +26,12 @@ public final class ConstantFP: Constant {
         var losesInfo: LLVMBool = 0
         return LLVMConstRealGetDouble(ref, &losesInfo)
     }
+
+    public var doubleValueWithStatus: (value: Double, isFinite: Bool) {
+        var losesInfo: LLVMBool = 0
+        let value = LLVMConstRealGetDouble(ref, &losesInfo)
+        return (value, losesInfo == 0)
+    }
 }
 
 public final class UndefValue: Constant {}

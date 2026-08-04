@@ -34,6 +34,10 @@ public final class Target {
         String(cString: LLVMGetTargetName(ref)!)
     }
 
+    public var description: String {
+        String(cString: LLVMGetTargetDescription(ref)!)
+    }
+
     public var hasTargetMachine: Bool {
         LLVMTargetHasTargetMachine(ref) != 0
     }
