@@ -1903,5 +1903,73 @@ func jitAddFunction() throws {
     #expect(ir.contains("llvm.memmove"))
     try module.verify()
 }
+
+@Test func builderCastVariants() throws {
+    let ctx = Context()
+    let module = Module(name: "castvars", in: ctx)
+    let i32 = ctx.int32
+    let i8 = ctx.int8
+    let mainType = ctx.functionType(returnType: i8, parameterTypes: [i8, ctx.double, ctx.pointerType()])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let p0 = main.parameter(at: 0)
+    builder.buildZExtOrBitCast(p0, to: i32, name: "zext")
+    builder.buildSExtOrBitCast(p0, to: i32, name: "sext")
+    builder.buildIntCast(p0, to: i32, isSigned: true, name: "intcast")
+    builder.buildFPCast(main.parameter(at: 1), to: ctx.float, name: "fpcast")
+    builder.buildRet(p0)
+
+    let ir = module.irString
+    #expect(ir.contains("zext"))
+    #expect(ir.contains("sext"))
+    #expect(ir.contains("intcast"))
+    #expect(ir.contains("fpcast"))
+    try module.verify()
+}
+
+@Test func valueNameAndModuleMetadata() throws {
+    let ctx = Context()
+    let module = Module(name: "mdmore", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let x = builder.buildAdd(main.parameter(at: 0), ctx.constantInt(2, type: i32), name: "x")
+    builder.buildRet(x)
+
+    #expect(x.shortName == "x")
+    x.name = "renamed"
+    #expect(x.shortName == "renamed")
+
+    let md = ctx.mdString("named-md")
+    module.addNamedMetadataOperand("foo", ctx.metadataAsValue(md))
+    #expect(module.namedMetadataOperandCount("foo") == 1)
+    #expect(module.namedMetadataOperands("foo").count == 1)
+    let ir = module.irString
+    #expect(ir.contains("!foo"))
+    try module.verify()
+}
+
+@Test func functionCallConv() throws {
+    let ctx = Context()
+    let module = Module(name: "fncc", in: ctx)
+    let voidType = ctx.functionType(returnType: ctx.void)
+    let f = module.addFunction("f", type: voidType)
+    let entry = f.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRetVoid()
+
+    #expect(f.callConv == LLVMCCallConv)
+    f.callConv = LLVMFastCallConv
+    #expect(f.callConv == LLVMFastCallConv)
+    let ir = module.irString
+    #expect(ir.contains("fastcc"))
+    try module.verify()
+}
 }
 

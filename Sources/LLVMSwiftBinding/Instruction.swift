@@ -286,7 +286,15 @@ public final class SelectInst: Instruction {}
 
 public final class GetElementPtrInst: Instruction {}
 
-public final class CastInst: Instruction {}
+public final class CastInst: Instruction {
+    public var value: Value? {
+        operand(at: 0)
+    }
+
+    public var destinationType: Type {
+        type
+    }
+}
 
 public final class UnreachableInst: Instruction {}
 

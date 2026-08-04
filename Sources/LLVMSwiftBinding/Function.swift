@@ -82,4 +82,9 @@ public final class Function: Value {
         get { LLVMGetLinkage(ref) }
         set { LLVMSetLinkage(ref, newValue) }
     }
+
+    public var callConv: LLVMCallConv {
+        get { LLVMCallConv(rawValue: LLVMGetFunctionCallConv(ref)) }
+        set { LLVMSetFunctionCallConv(ref, newValue.rawValue) }
+    }
 }

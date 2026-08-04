@@ -20,6 +20,21 @@ public class Value {
         set { LLVMSetValueName(ref, newValue) }
     }
 
+    public var nameWithLength: String {
+        var length: Int = 0
+        guard let ptr = LLVMGetValueName2(ref, &length) else { return "" }
+        let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    public var shortName: String {
+        var length: Int = 0
+        guard let ptr = LLVMGetValueName2(ref, &length) else { return "" }
+        let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+        let name = String(decoding: bytes, as: UTF8.self)
+        return name.hasPrefix("%") ? String(name.dropFirst()) : name
+    }
+
     public var hasMetadata: Bool {
         LLVMHasMetadata(ref) != 0
     }

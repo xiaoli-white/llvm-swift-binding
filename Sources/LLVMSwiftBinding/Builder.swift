@@ -369,6 +369,42 @@ public final class Builder {
     }
 
     @discardableResult
+    public func buildZExtOrBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildZExtOrBitCast(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    public func buildSExtOrBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildSExtOrBitCast(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    public func buildTruncOrBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildTruncOrBitCast(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    public func buildPointerCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildPointerCast(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    public func buildIntCast(_ value: Value, to type: Type, isSigned: Bool, name: String = "") -> CastInst {
+        let inst = LLVMBuildIntCast2(ref, value.ref, type.ref, isSigned ? 1 : 0, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
+    public func buildFPCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+        let inst = LLVMBuildFPCast(ref, value.ref, type.ref, name)!
+        return CastInst(ref: inst, context: context, module: currentModule)
+    }
+
+    @discardableResult
     public func buildSwitch(_ value: Value, default dest: BasicBlock, numCases: UInt32 = 0) -> SwitchInst {
         let inst = LLVMBuildSwitch(ref, value.ref, dest.ref, numCases)!
         return SwitchInst(ref: inst, context: context, module: currentModule)
