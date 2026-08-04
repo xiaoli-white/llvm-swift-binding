@@ -23,6 +23,15 @@ final class BasicBlock {
         return Instruction.wrap(inst, context: context, module: module)
     }
 
+    func insertBasicBlock(_ name: String) -> BasicBlock {
+        let block = LLVMInsertBasicBlockInContext(context.ref, ref, name)!
+        return BasicBlock(ref: block, function: function, module: module)
+    }
+
+    func moveBasicBlock(before other: BasicBlock) {
+        LLVMMoveBasicBlockBefore(ref, other.ref)
+    }
+
     var firstInstruction: Instruction? {
         guard let inst = LLVMGetFirstInstruction(ref) else { return nil }
         return Instruction.wrap(inst, context: context, module: module)

@@ -49,6 +49,14 @@ final class Module {
         return Function(ref: ref, module: self)
     }
 
+    func getOrInsertFunction(_ name: String, type: FunctionType) -> Function {
+        let nameLength = name.utf8.count
+        let fnRef = name.withCString { namePtr in
+            LLVMGetOrInsertFunction(ref, namePtr, nameLength, type.ref)
+        }
+        return Function(ref: fnRef!, module: self)
+    }
+
     var functions: [Function] {
         var result: [Function] = []
         guard let first = LLVMGetFirstFunction(ref) else { return [] }

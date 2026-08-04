@@ -67,4 +67,19 @@ final class Function: Value {
             LLVMSetPersonalityFn(ref, newValue?.ref)
         }
     }
+
+    var gc: String? {
+        get {
+            guard let ptr = LLVMGetGC(ref) else { return nil }
+            return String(cString: ptr)
+        }
+        set {
+            LLVMSetGC(ref, newValue)
+        }
+    }
+
+    var linkage: LLVMLinkage {
+        get { LLVMGetLinkage(ref) }
+        set { LLVMSetLinkage(ref, newValue) }
+    }
 }

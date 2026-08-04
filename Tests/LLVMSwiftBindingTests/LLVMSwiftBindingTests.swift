@@ -1752,5 +1752,99 @@ func jitAddFunction() throws {
     let gv = module.addGlobal("g", type: i32)
     #expect(gv.description.contains("g"))
 }
+
+@Test func functionAttributes() throws {
+    let ctx = Context()
+    let module = Module(name: "fnattrs", in: ctx)
+    let voidType = ctx.functionType(returnType: ctx.void)
+    let f = module.addFunction("f", type: voidType)
+    let entry = f.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRetVoid()
+
+    #expect(f.gc == nil)
+    f.gc = "shadow-stack"
+    #expect(f.gc == "shadow-stack")
+    #expect(f.linkage == LLVMExternalLinkage)
+    f.linkage = LLVMInternalLinkage
+    #expect(f.linkage == LLVMInternalLinkage)
+    let ir = module.irString
+    #expect(ir.contains("internal"))
+    #expect(ir.contains("shadow-stack"))
+    try module.verify()
+}
+
+@Test func moduleGetOrInsertFunction() throws {
+    let ctx = Context()
+    let module = Module(name: "getorinsert", in: ctx)
+    let fnType = ctx.functionType(returnType: ctx.int32)
+    let f1 = module.getOrInsertFunction("foo", type: fnType)
+    let f2 = module.getOrInsertFunction("foo", type: fnType)
+    #expect(f1.ref == f2.ref)
+    #expect(module.function(named: "foo")?.ref == f1.ref)
+}
+
+@Test func basicBlockOperations() throws {
+    let ctx = Context()
+    let module = Module(name: "bbops", in: ctx)
+    let voidType = ctx.functionType(returnType: ctx.void)
+    let f = module.addFunction("f", type: voidType)
+    let first = f.appendBasicBlock("first")
+    let second = f.appendBasicBlock("second")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: first)
+    builder.buildRetVoid()
+    builder.positionAtEnd(of: second)
+    builder.buildRetVoid()
+
+    let newBlock = first.insertBasicBlock("new")
+    builder.positionAtEnd(of: newBlock)
+    builder.buildRetVoid()
+    #expect(f.basicBlocks.count == 3)
+    #expect(f.basicBlocks[0].ref == newBlock.ref)
+    #expect(f.basicBlocks[1].ref == first.ref)
+
+    newBlock.moveBasicBlock(before: second)
+    #expect(f.basicBlocks[1].ref == newBlock.ref)
+    try module.verify()
+}
+
+@Test func targetMachineQueries() throws {
+    TargetMachine.initializeAllTargets()
+    let triple = TargetMachine.defaultTriple
+    let target = try Target.fromTriple(triple)
+    let tm = TargetMachine(target: target, triple: triple)
+    #expect(tm.triple == triple)
+    #expect(tm.target.name == target.name)
+}
+
+@Test func vectorBuilderInstructions() throws {
+    let ctx = Context()
+    let module = Module(name: "vecbuild", in: ctx)
+    let i32 = ctx.int32
+    let vecType = ctx.vectorType(elementType: i32, count: 4)
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [vecType])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let vec = main.parameter(at: 0)
+    let idx = ctx.constantInt(1, type: i32)
+    builder.buildExtractElement(vec, idx, name: "e")
+    builder.buildInsertElement(vec, ctx.constantInt(9, type: i32), idx, name: "i")
+    let mask = ctx.constantVector([
+        ctx.constantInt(0, type: i32), ctx.constantInt(0, type: i32),
+        ctx.constantInt(0, type: i32), ctx.constantInt(0, type: i32),
+    ])
+    builder.buildShuffleVector(vec, vec, mask: mask, name: "s")
+    builder.buildRet(ctx.constantInt(0, type: i32))
+
+    let ir = module.irString
+    #expect(ir.contains("extractelement"))
+    #expect(ir.contains("insertelement"))
+    #expect(ir.contains("shufflevector"))
+    try module.verify()
+}
 }
 

@@ -91,6 +91,28 @@ final class TargetMachine {
         _ = _initializeTargets
     }
 
+    var target: Target {
+        Target(ref: LLVMGetTargetMachineTarget(ref))
+    }
+
+    var triple: String {
+        let ptr = LLVMGetTargetMachineTriple(ref)!
+        defer { LLVMDisposeMessage(ptr) }
+        return String(cString: ptr)
+    }
+
+    var cpu: String {
+        let ptr = LLVMGetTargetMachineCPU(ref)!
+        defer { LLVMDisposeMessage(ptr) }
+        return String(cString: ptr)
+    }
+
+    var featureString: String {
+        let ptr = LLVMGetTargetMachineFeatureString(ref)!
+        defer { LLVMDisposeMessage(ptr) }
+        return String(cString: ptr)
+    }
+
     func emitToFile(module: Module,
                     _ filename: String,
                     fileType: LLVMCodeGenFileType = LLVMObjectFile) throws {
