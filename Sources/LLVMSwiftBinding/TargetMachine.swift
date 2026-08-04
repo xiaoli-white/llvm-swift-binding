@@ -1,13 +1,12 @@
 import cLLVM
-import LLVMShim
 
 private let _initializeTargets: Void = {
-    shim_initialize_native_target()
-    shim_initialize_all_targets()
-    shim_initialize_all_target_infos()
-    shim_initialize_all_target_mcs()
-    shim_initialize_all_asm_printers()
-    shim_initialize_all_disassemblers()
+    LLVMInitializeNativeTarget()
+    LLVMInitializeAllTargets()
+    LLVMInitializeAllTargetInfos()
+    LLVMInitializeAllTargetMCs()
+    LLVMInitializeAllAsmPrinters()
+    LLVMInitializeAllDisassemblers()
 }()
 
 public final class Target {

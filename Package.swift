@@ -15,12 +15,8 @@ let package = Package(
             path: "Sources/cLLVM"
         ),
         .target(
-            name: "LLVMShim",
-            dependencies: ["cLLVM"]
-        ),
-        .target(
             name: "LLVMSwiftBinding",
-            dependencies: ["cLLVM", "LLVMShim"]
+            dependencies: ["cLLVM"]
         ),
         .testTarget(
             name: "LLVMSwiftBindingTests",
