@@ -1306,5 +1306,63 @@ func jitAddFunction() throws {
     #expect(insts[1].ref == add.ref)
     #expect(insts[2].ref == ret.ref)
 }
+
+@Test func typeSystemDetails() throws {
+    let ctx = Context()
+    let module = Module(name: "types", in: ctx)
+    let i32 = ctx.int32
+    let ptr = ctx.pointerType()
+
+    let named = ctx.namedStructType(name: "mystruct", elementTypes: [i32, ptr], isPacked: false)
+    #expect(named.isStruct)
+    #expect(!named.isOpaque)
+    #expect(!named.isLiteral)
+    #expect(named.name == "mystruct")
+    #expect(named.elementCount == 2)
+    #expect(named.elementType(at: 0).ref == i32.ref)
+    #expect(named.elementType(at: 1).ref == ptr.ref)
+    #expect(named.elementTypes.count == 2)
+
+    let opaque = ctx.namedStructType(name: "opaque_struct")
+    #expect(opaque.isOpaque)
+    #expect(opaque.elementCount == 0)
+
+    let literal = ctx.structType(elementTypes: [i32, i32], isPacked: true)
+    #expect(literal.isLiteral)
+    #expect(literal.isPacked)
+    #expect(literal.name == nil)
+
+    let vec = ctx.vectorType(elementType: i32, count: 4)
+    #expect(vec.isVector)
+    #expect(!vec.isScalable)
+    #expect(vec.elementCount == 4)
+    #expect(vec.elementType.ref == i32.ref)
+
+    let scalable = ctx.scalableVectorType(elementType: i32, count: 4)
+    #expect(scalable.isVector)
+    #expect(scalable.isScalable)
+
+    let array = ctx.arrayType(elementType: i32, count: 8)
+    #expect(array.isArray)
+    #expect(array.elementCount == 8)
+    #expect(array.elementType.ref == i32.ref)
+
+    let tet = ctx.targetExtType(name: "ptrauth", typeParams: [i32], intParams: [0, 1])
+    #expect(tet.isTargetExt)
+    #expect(tet.name == "ptrauth")
+    #expect(tet.typeParameterCount == 1)
+    #expect(tet.typeParameter(at: 0).ref == i32.ref)
+    #expect(tet.intParameterCount == 2)
+    #expect(tet.intParameter(at: 0) == 0)
+    #expect(tet.intParameter(at: 1) == 1)
+
+    #expect(i32.isInteger)
+    #expect(ctx.void.isVoid)
+    #expect(ctx.double.isFloat)
+    #expect(ptr.isPointer)
+    #expect(!i32.isPointer)
+    #expect(i32.description == "i32")
+    #expect(ctx.functionType(returnType: ctx.void).description == "void ()")
+}
 }
 

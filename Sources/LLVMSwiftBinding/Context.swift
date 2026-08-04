@@ -247,9 +247,41 @@ final class Context {
         return wrapType(ref!) as! StructType
     }
 
+    func namedStructType(name: String, elementTypes: [Type]? = nil, isPacked: Bool = false) -> StructType {
+        let ref = LLVMStructCreateNamed(self.ref, name)
+        let type = wrapType(ref!) as! StructType
+        if let elementTypes {
+            var members: [LLVMTypeRef?] = elementTypes.map { $0.ref }
+            members.withUnsafeMutableBufferPointer { buffer in
+                LLVMStructSetBody(ref, buffer.baseAddress, UInt32(elementTypes.count), isPacked ? 1 : 0)
+            }
+        }
+        return type
+    }
+
     func arrayType(elementType: Type, count: UInt32) -> ArrayType {
         let ref = LLVMArrayType(elementType.ref, count)
         return wrapType(ref!) as! ArrayType
+    }
+
+    func vectorType(elementType: Type, count: UInt32) -> VectorType {
+        let ref = LLVMVectorType(elementType.ref, count)
+        return wrapType(ref!) as! VectorType
+    }
+
+    func scalableVectorType(elementType: Type, count: UInt32) -> VectorType {
+        let ref = LLVMScalableVectorType(elementType.ref, count)
+        return wrapType(ref!) as! VectorType
+    }
+
+    func targetExtType(name: String, typeParams: [Type] = [], intParams: [UInt32] = []) -> TargetExtType {
+        var typeRefs: [LLVMTypeRef?] = typeParams.map { $0.ref }
+        let ref = typeRefs.withUnsafeMutableBufferPointer { typeBuf in
+            intParams.withUnsafeBufferPointer { intBuf in
+                LLVMTargetExtTypeInContext(self.ref, name, typeBuf.baseAddress, UInt32(typeParams.count), UnsafeMutablePointer(mutating: intBuf.baseAddress), UInt32(intParams.count))
+            }
+        }
+        return wrapType(ref!) as! TargetExtType
     }
 
     func mdNode(_ elements: [Metadata]) -> Metadata {
@@ -262,11 +294,6 @@ final class Context {
 
     func metadataAsValue(_ metadata: Metadata) -> Value {
         Value(ref: LLVMMetadataAsValue(self.ref, metadata.ref), context: self)
-    }
-
-    func vectorType(elementType: Type, count: UInt32) -> VectorType {
-        let ref = LLVMVectorType(elementType.ref, count)
-        return wrapType(ref!) as! VectorType
     }
 
     func wrapType(_ ref: LLVMTypeRef) -> Type {
