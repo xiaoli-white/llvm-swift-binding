@@ -34,6 +34,8 @@ try module.verify()
 print(module.irString)
 ```
 
+cLLVM types (e.g. `LLVMAtomicOrdering`, `LLVMCCallConv`) are re-exported — no separate `import cLLVM` needed.
+
 ## API overview
 
 | Area | File | Highlights |
@@ -60,4 +62,4 @@ print(module.irString)
 swift test
 ```
 
-All 69 tests pass against LLVM 22.1.8.
+All 76 tests pass against LLVM 22.1.8 (2 ORC JIT tests disabled on glibc 2.44).
