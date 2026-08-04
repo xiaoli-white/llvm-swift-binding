@@ -57,6 +57,19 @@ class Value {
         LLVMReplaceAllUsesWith(ref, newValue.ref)
     }
 
+    var uses: [Value] {
+        var result: [Value] = []
+        guard let first = LLVMGetFirstUse(ref) else { return [] }
+        var current: LLVMUseRef? = first
+        while let use = current {
+            if let user = LLVMGetUser(use) {
+                result.append(Value(ref: user, context: context, module: module))
+            }
+            current = LLVMGetNextUse(use)
+        }
+        return result
+    }
+
     func setMetadata(kind: UInt32, _ node: Value?) {
         LLVMSetMetadata(ref, kind, node?.ref)
     }

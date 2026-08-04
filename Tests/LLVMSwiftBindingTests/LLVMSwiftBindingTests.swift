@@ -1045,5 +1045,139 @@ func jitAddFunction() throws {
     #expect(module.global(named: "missing") == nil)
     #expect(counter.parentModule.ref == module.ref)
 }
+
+@Test func callBrAsmGoto() throws {
+    let ctx = Context()
+    let module = Module(name: "callbrasm", in: ctx)
+    let i32 = ctx.int32
+
+    let asmType = ctx.functionType(returnType: ctx.void, parameterTypes: [ctx.pointerType()])
+    let asm = ctx.constantInlineAsm(asmType, asmString: "jmp ${0:l}", constraints: "X,!i", hasSideEffects: true, isAlignStack: false)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let normal = main.appendBasicBlock("normal")
+    let indirect = main.appendBasicBlock("indirect")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let ba = ctx.blockAddress(function: main, block: indirect)
+    let callBr = builder.buildCallBr(asm, args: [ba], default: normal, indirectDests: [indirect])
+    builder.positionAtEnd(of: normal)
+    builder.buildRet(ctx.constantInt(0, type: i32))
+    builder.positionAtEnd(of: indirect)
+    builder.buildRet(ctx.constantInt(1, type: i32))
+
+    #expect(callBr is CallBrInst)
+    let ir = module.irString
+    #expect(ir.contains("callbr"))
+    #expect(ir.contains("asm sideeffect"))
+    #expect(ir.contains("blockaddress"))
+    try module.verify()
+}
+
+@Test func callInstructionAttributes() throws {
+    let ctx = Context()
+    let module = Module(name: "callattrs", in: ctx)
+    let i32 = ctx.int32
+
+    let calleeType = ctx.functionType(returnType: i32)
+    let callee = module.addFunction("callee", type: calleeType)
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let call = builder.buildCall(callee, [], name: "c")
+    builder.buildRet(call)
+
+    #expect(!call.isTailCall)
+    #expect(call.callConvention == LLVMCCallConv)
+    call.isTailCall = true
+    #expect(call.isTailCall)
+    #expect(call.tailCallKind == LLVMTailCallKindTail)
+    call.callConvention = LLVMFastCallConv
+    #expect(call.callConvention == LLVMFastCallConv)
+    let ir = module.irString
+    #expect(ir.contains("tail call"))
+    #expect(ir.contains("fastcc"))
+    try module.verify()
+}
+
+@Test func globalAliasAndIFunc() throws {
+    let ctx = Context()
+    let module = Module(name: "aliasifunc", in: ctx)
+    let i32 = ctx.int32
+
+    let targetType = ctx.functionType(returnType: i32)
+    let target = module.addFunction("target", type: targetType)
+    let targetBuilder = Builder(in: ctx)
+    targetBuilder.positionAtEnd(of: target.appendBasicBlock("entry"))
+    targetBuilder.buildRet(ctx.constantInt(0, type: i32))
+    let alias = module.addAlias("alias", type: targetType, aliasee: target)
+    #expect(alias.aliasee?.ref == target.ref)
+    #expect(module.alias(named: "alias")?.ref == alias.ref)
+    #expect(module.alias(named: "missing") == nil)
+    #expect(module.aliases.count == 1)
+
+    let resolverType = ctx.functionType(returnType: ctx.pointerType())
+    let resolver = module.addFunction("resolver", type: resolverType)
+    let resolverBuilder = Builder(in: ctx)
+    resolverBuilder.positionAtEnd(of: resolver.appendBasicBlock("entry"))
+    resolverBuilder.buildRet(ctx.constantPointerNull(ctx.pointerType()))
+    let ifunc = module.addIFunc("ifunc", type: targetType, resolver: resolver)
+    #expect(ifunc.resolver?.ref == resolver.ref)
+    #expect(module.ifunc(named: "ifunc")?.ref == ifunc.ref)
+    #expect(module.ifuncs.count == 1)
+
+    let ir = module.irString
+    #expect(ir.contains("@alias"))
+    #expect(ir.contains("@ifunc"))
+    try module.verify()
+}
+
+@Test func moduleQueries() throws {
+    let ctx = Context()
+    let module = Module(name: "queries", in: ctx)
+    let i32 = ctx.int32
+    let voidType = ctx.functionType(returnType: ctx.void)
+
+    let a = module.addFunction("a", type: voidType)
+    let b = module.addFunction("b", type: voidType)
+    let c = module.addFunction("c", type: ctx.functionType(returnType: i32))
+
+    #expect(module.functions.count == 3)
+    #expect(module.function(named: "a")?.ref == a.ref)
+    #expect(module.function(named: "b")?.ref == b.ref)
+    #expect(module.function(named: "c")?.ref == c.ref)
+    #expect(module.function(named: "missing") == nil)
+}
+
+@Test func valueUses() throws {
+    let ctx = Context()
+    let module = Module(name: "uses", in: ctx)
+    let i32 = ctx.int32
+
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let param = main.parameter(at: 0)
+    let sum = builder.buildAdd(param, ctx.constantInt(1, type: i32), name: "sum")
+    builder.buildRet(sum)
+
+    #expect(param.uses.count == 1)
+    #expect(param.uses[0].ref == sum.ref)
+    #expect(sum.uses.count == 1)
+    #expect(sum.uses[0].ref == entry.terminator!.ref)
+
+    let three = ctx.constantInt(3, type: i32)
+    sum.replaceAllUsesWith(three)
+    #expect(sum.uses.isEmpty)
+    #expect(entry.terminator!.operand(at: 0)?.ref == three.ref)
+    #expect(param.uses.count == 1)
+    #expect(param.uses[0].ref == sum.ref)
+}
 }
 

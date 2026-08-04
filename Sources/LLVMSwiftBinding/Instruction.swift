@@ -125,7 +125,22 @@ final class ICmpInst: Instruction {}
 
 final class FCmpInst: Instruction {}
 
-final class CallInst: Instruction {}
+final class CallInst: Instruction {
+    var isTailCall: Bool {
+        get { LLVMIsTailCall(ref) != 0 }
+        set { LLVMSetTailCall(ref, newValue ? 1 : 0) }
+    }
+
+    var tailCallKind: LLVMTailCallKind {
+        get { LLVMGetTailCallKind(ref) }
+        set { LLVMSetTailCallKind(ref, newValue) }
+    }
+
+    var callConvention: LLVMCallConv {
+        get { LLVMCallConv(rawValue: LLVMGetInstructionCallConv(ref)) ?? LLVMCCallConv }
+        set { LLVMSetInstructionCallConv(ref, newValue.rawValue) }
+    }
+}
 
 final class CallBrInst: Instruction {}
 
