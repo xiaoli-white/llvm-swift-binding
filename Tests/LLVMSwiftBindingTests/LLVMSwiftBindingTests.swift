@@ -1437,5 +1437,21 @@ func jitAddFunction() throws {
     #expect(!after.contains("add"))
     try module.verify()
 }
+
+@Test func constantsSupplementary() throws {
+    let ctx = Context()
+    let i32 = ctx.int32
+
+    let poison = ctx.poison(i32)
+    #expect(poison is PoisonValue)
+    let undef = ctx.undef(i32)
+    #expect(undef is UndefValue)
+
+    let fp = ctx.constantFP(ofString: "3.14", type: ctx.double)
+    #expect(abs(fp.doubleValue - 3.14) < 0.001)
+
+    let vector = ctx.constantVector([poison, undef])
+    #expect(vector.aggregateElement(at: 1) is UndefValue)
+}
 }
 

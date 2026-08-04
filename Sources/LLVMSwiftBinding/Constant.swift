@@ -30,6 +30,10 @@ final class ConstantFP: Constant {
 
 final class UndefValue: Constant {}
 
+final class PoisonValue: Constant {}
+
+final class ConstantTokenNone: Constant {}
+
 final class ConstantArray: Constant {}
 
 final class ConstantStruct: Constant {}

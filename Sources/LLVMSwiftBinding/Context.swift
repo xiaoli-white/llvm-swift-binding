@@ -74,6 +74,18 @@ final class Context {
         return UndefValue(ref: ref, context: self)
     }
 
+    func poison(_ type: Type) -> PoisonValue {
+        let ref = LLVMGetPoison(type.ref)!
+        return PoisonValue(ref: ref, context: self)
+    }
+
+    func constantFP(ofString str: String, type: FloatType) -> ConstantFP {
+        let ref = str.withCString { strPtr in
+            LLVMConstRealOfStringAndSize(type.ref, strPtr, UInt32(str.utf8.count))
+        }
+        return wrapConstant(ref!) as! ConstantFP
+    }
+
     func constantString(_ str: String, dontNullTerminate: Bool = false) -> Constant {
         let ref = str.withCString { strPtr in
             LLVMConstStringInContext2(self.ref, strPtr, str.utf8.count, dontNullTerminate ? 1 : 0)
@@ -345,6 +357,12 @@ final class Context {
             constant = ConstantInt(ref: ref, context: self)
         } else if LLVMIsAConstantFP(ref) != nil {
             constant = ConstantFP(ref: ref, context: self)
+        } else if LLVMIsAUndefValue(ref) != nil {
+            constant = UndefValue(ref: ref, context: self)
+        } else if LLVMIsAPoisonValue(ref) != nil {
+            constant = PoisonValue(ref: ref, context: self)
+        } else if LLVMIsAConstantTokenNone(ref) != nil {
+            constant = ConstantTokenNone(ref: ref, context: self)
         } else if LLVMIsAConstantDataArray(ref) != nil {
             constant = ConstantDataArray(ref: ref, context: self)
         } else if LLVMIsAConstantExpr(ref) != nil {
