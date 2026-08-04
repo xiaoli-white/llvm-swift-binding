@@ -23,6 +23,32 @@ final class Function: Value {
         return BasicBlock(ref: block, function: self, module: module!)
     }
 
+    var basicBlockCount: UInt32 {
+        LLVMCountBasicBlocks(ref)
+    }
+
+    var basicBlocks: [BasicBlock] {
+        var result: [BasicBlock] = []
+        guard let first = LLVMGetFirstBasicBlock(ref) else { return [] }
+        var current: LLVMBasicBlockRef? = first
+        while let block = current {
+            result.append(BasicBlock(ref: block, function: self, module: module!))
+            current = LLVMGetNextBasicBlock(block)
+        }
+        return result
+    }
+
+    var parameters: [Argument] {
+        var result: [Argument] = []
+        guard let first = LLVMGetFirstParam(ref) else { return [] }
+        var current: LLVMValueRef? = first
+        while let param = current {
+            result.append(Argument(ref: param, function: self, module: module!))
+            current = LLVMGetNextParam(param)
+        }
+        return result
+    }
+
     func setSubprogram(_ sp: Metadata) {
         LLVMSetSubprogram(ref, sp.ref)
     }

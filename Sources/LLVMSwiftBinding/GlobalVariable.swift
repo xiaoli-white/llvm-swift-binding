@@ -15,7 +15,7 @@ final class GlobalVariable: Value {
         }
     }
 
-    var isConstant: Bool {
+    override var isConstant: Bool {
         LLVMIsGlobalConstant(ref) != 0
     }
 

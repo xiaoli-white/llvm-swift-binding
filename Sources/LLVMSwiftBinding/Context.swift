@@ -74,6 +74,48 @@ final class Context {
         return UndefValue(ref: ref, context: self)
     }
 
+    func constantString(_ str: String, dontNullTerminate: Bool = false) -> Constant {
+        let ref = str.withCString { strPtr in
+            LLVMConstStringInContext2(self.ref, strPtr, str.utf8.count, dontNullTerminate ? 1 : 0)
+        }
+        return wrapConstant(ref!)
+    }
+
+    func constantReal(ofString str: String, type: FloatType) -> ConstantFP {
+        let ref = str.withCString { strPtr in
+            LLVMConstRealOfStringAndSize(type.ref, strPtr, UInt32(str.utf8.count))
+        }
+        return wrapConstant(ref!) as! ConstantFP
+    }
+
+    func constantNeg(_ value: Constant) -> Constant {
+        wrapConstant(LLVMConstNeg(value.ref)!)
+    }
+
+    func constantAdd(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstAdd(lhs.ref, rhs.ref)!)
+    }
+
+    func constantSub(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstSub(lhs.ref, rhs.ref)!)
+    }
+
+    func constantTrunc(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstTrunc(value.ref, type.ref)!)
+    }
+
+    func constantPtrToInt(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstPtrToInt(value.ref, type.ref)!)
+    }
+
+    func constantIntToPtr(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstIntToPtr(value.ref, type.ref)!)
+    }
+
+    func constantBitCast(_ value: Constant, to type: Type) -> Constant {
+        wrapConstant(LLVMConstBitCast(value.ref, type.ref)!)
+    }
+
     func constantArray(_ values: [Constant], elementType: Type) -> ConstantArray {
         var valRefs: [LLVMValueRef?] = values.map { $0.ref }
         let ref = valRefs.withUnsafeMutableBufferPointer { buffer in

@@ -18,7 +18,8 @@ final class ConstantInt: Constant {
 
 final class ConstantFP: Constant {
     var doubleValue: Double {
-        LLVMConstRealGetDouble(ref, nil)
+        var losesInfo: LLVMBool = 0
+        return LLVMConstRealGetDouble(ref, &losesInfo)
     }
 }
 

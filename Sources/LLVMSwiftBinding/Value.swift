@@ -24,6 +24,22 @@ class Value {
         LLVMHasMetadata(ref) != 0
     }
 
+    var isConstant: Bool {
+        LLVMIsConstant(ref) != 0
+    }
+
+    var isUndef: Bool {
+        LLVMIsUndef(ref) != 0
+    }
+
+    var isNull: Bool {
+        LLVMIsNull(ref) != 0
+    }
+
+    var valueKind: LLVMValueKind {
+        LLVMGetValueKind(ref)
+    }
+
     func setMetadata(kind: UInt32, _ node: Value?) {
         LLVMSetMetadata(ref, kind, node?.ref)
     }

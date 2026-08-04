@@ -12,4 +12,35 @@ final class BasicBlock {
     }
 
     var context: Context { module.context }
+
+    var name: String {
+        get { String(cString: LLVMGetBasicBlockName(ref)) }
+        set { LLVMSetValueName2(ref, newValue, newValue.utf8.count) }
+    }
+
+    var terminator: Instruction? {
+        guard let inst = LLVMGetBasicBlockTerminator(ref) else { return nil }
+        return Instruction.wrap(inst, context: context, module: module)
+    }
+
+    var firstInstruction: Instruction? {
+        guard let inst = LLVMGetFirstInstruction(ref) else { return nil }
+        return Instruction.wrap(inst, context: context, module: module)
+    }
+
+    var lastInstruction: Instruction? {
+        guard let inst = LLVMGetLastInstruction(ref) else { return nil }
+        return Instruction.wrap(inst, context: context, module: module)
+    }
+
+    var instructions: [Instruction] {
+        var result: [Instruction] = []
+        guard let first = LLVMGetFirstInstruction(ref) else { return [] }
+        var current: LLVMValueRef? = first
+        while let inst = current {
+            result.append(Instruction.wrap(inst, context: context, module: module))
+            current = LLVMGetNextInstruction(inst)
+        }
+        return result
+    }
 }

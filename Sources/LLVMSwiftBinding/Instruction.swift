@@ -1,6 +1,79 @@
 import cLLVM
 
-class Instruction: Value {}
+class Instruction: Value {
+    static func wrap(_ ref: LLVMValueRef, context: Context, module: Module?) -> Instruction {
+        let inst: Instruction
+        switch LLVMGetInstructionOpcode(ref) {
+        case LLVMRet:
+            inst = ReturnInst(ref: ref, context: context, module: module)
+        case LLVMBr:
+            inst = BranchInst(ref: ref, context: context, module: module)
+        case LLVMSwitch:
+            inst = SwitchInst(ref: ref, context: context, module: module)
+        case LLVMIndirectBr:
+            inst = IndirectBrInst(ref: ref, context: context, module: module)
+        case LLVMInvoke:
+            inst = InvokeInst(ref: ref, context: context, module: module)
+        case LLVMUnreachable:
+            inst = UnreachableInst(ref: ref, context: context, module: module)
+        case LLVMAlloca:
+            inst = AllocaInst(ref: ref, context: context, module: module)
+        case LLVMLoad:
+            inst = LoadInst(ref: ref, context: context, module: module)
+        case LLVMStore:
+            inst = StoreInst(ref: ref, context: context, module: module)
+        case LLVMGetElementPtr:
+            inst = GetElementPtrInst(ref: ref, context: context, module: module)
+        case LLVMICmp:
+            inst = ICmpInst(ref: ref, context: context, module: module)
+        case LLVMFCmp:
+            inst = FCmpInst(ref: ref, context: context, module: module)
+        case LLVMCall, LLVMCallBr:
+            inst = CallInst(ref: ref, context: context, module: module)
+        case LLVMPHI:
+            inst = PHINode(ref: ref, context: context, module: module)
+        case LLVMSelect:
+            inst = SelectInst(ref: ref, context: context, module: module)
+        case LLVMVAArg:
+            inst = VAArgInst(ref: ref, context: context, module: module)
+        case LLVMExtractElement:
+            inst = ExtractElementInst(ref: ref, context: context, module: module)
+        case LLVMInsertElement:
+            inst = InsertElementInst(ref: ref, context: context, module: module)
+        case LLVMShuffleVector:
+            inst = ShuffleVectorInst(ref: ref, context: context, module: module)
+        case LLVMExtractValue:
+            inst = ExtractValueInst(ref: ref, context: context, module: module)
+        case LLVMInsertValue:
+            inst = InsertValueInst(ref: ref, context: context, module: module)
+        case LLVMFreeze:
+            inst = FreezeInst(ref: ref, context: context, module: module)
+        case LLVMFence:
+            inst = FenceInst(ref: ref, context: context, module: module)
+        case LLVMAtomicCmpXchg:
+            inst = AtomicCmpXchgInst(ref: ref, context: context, module: module)
+        case LLVMAtomicRMW:
+            inst = AtomicRMWInst(ref: ref, context: context, module: module)
+        case LLVMResume:
+            inst = ResumeInst(ref: ref, context: context, module: module)
+        case LLVMLandingPad:
+            inst = LandingPadInst(ref: ref, context: context, module: module)
+        case LLVMCleanupRet:
+            inst = CleanupRetInst(ref: ref, context: context, module: module)
+        case LLVMCatchRet:
+            inst = CatchRetInst(ref: ref, context: context, module: module)
+        case LLVMCatchPad:
+            inst = CatchPadInst(ref: ref, context: context, module: module)
+        case LLVMCleanupPad:
+            inst = CleanupPadInst(ref: ref, context: context, module: module)
+        case LLVMCatchSwitch:
+            inst = CatchSwitchInst(ref: ref, context: context, module: module)
+        default:
+            inst = BinaryOperator(ref: ref, context: context, module: module)
+        }
+        return inst
+    }
+}
 
 final class ReturnInst: Instruction {}
 

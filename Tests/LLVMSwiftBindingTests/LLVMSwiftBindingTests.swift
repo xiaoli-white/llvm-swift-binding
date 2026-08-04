@@ -843,5 +843,74 @@ func jitAddFunction() throws {
     #expect(ir.contains("cleanupret"))
     try module.verify()
 }
+
+@Test func traversalAndQueries() throws {
+    let ctx = Context()
+    let module = Module(name: "traverse", in: ctx)
+    let i32 = ctx.int32
+
+    let addType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+    let add = module.addFunction("add", type: addType)
+    let entry = add.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let sum = builder.buildAdd(add.parameter(at: 0), add.parameter(at: 1), name: "sum")
+    builder.buildRet(sum)
+
+    #expect(add.basicBlockCount == 1)
+    #expect(add.basicBlocks.count == 1)
+    #expect(add.parameters.count == 2)
+    #expect(entry.name == "entry")
+
+    let instructions = entry.instructions
+    #expect(instructions.count == 2)
+    #expect(instructions[0] is BinaryOperator)
+    #expect(instructions[1] is ReturnInst)
+    #expect(entry.firstInstruction is BinaryOperator)
+    #expect(entry.terminator is ReturnInst)
+
+    #expect(sum.isConstant == false)
+    #expect(sum.valueKind == LLVMInstructionValueKind)
+    #expect(ctx.constantInt(42, type: i32).isConstant)
+    #expect(ctx.constantNull(i32).isNull)
+    #expect(ctx.undef(i32).isUndef)
+}
+
+@Test func constantExpressions() throws {
+    let ctx = Context()
+    let module = Module(name: "constexpr", in: ctx)
+    let i32 = ctx.int32
+    let i8 = ctx.int8
+
+    let str = ctx.constantString("hello")
+    #expect(str.isConstant)
+    #expect(ctx.constantReal(ofString: "3.5", type: ctx.double).doubleValue == 3.5)
+
+    let five = ctx.constantInt(5, type: i32)
+    let three = ctx.constantInt(3, type: i32)
+    let eight = ctx.constantAdd(five, three)
+    #expect((eight as! ConstantInt).unsignedValue == 8)
+    let two = ctx.constantSub(five, three)
+    #expect((two as! ConstantInt).unsignedValue == 2)
+    let neg = ctx.constantNeg(five)
+    #expect((neg as! ConstantInt).signedValue == -5)
+
+    let truncated = ctx.constantTrunc(five, to: i8)
+    #expect((truncated as! ConstantInt).unsignedValue == 5)
+    let bitcast = ctx.constantBitCast(five, to: ctx.float)
+    #expect(bitcast.isConstant)
+
+    let i8Ptr = ctx.pointerType()
+    let intToPtr = ctx.constantIntToPtr(five, to: i8Ptr)
+    #expect(intToPtr.isConstant)
+
+    let mainType = ctx.functionType(returnType: i32)
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    builder.buildRet(two)
+    try module.verify()
+}
 }
 
