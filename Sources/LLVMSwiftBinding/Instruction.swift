@@ -282,9 +282,17 @@ public final class SwitchInst: Instruction {
     }
 }
 
-public final class ICmpInst: Instruction {}
+public final class ICmpInst: Instruction {
+    public var predicate: LLVMIntPredicate {
+        LLVMGetICmpPredicate(ref)
+    }
+}
 
-public final class FCmpInst: Instruction {}
+public final class FCmpInst: Instruction {
+    public var predicate: LLVMRealPredicate {
+        LLVMGetFCmpPredicate(ref)
+    }
+}
 
 public final class CallInst: Instruction {
     public var isTailCall: Bool {

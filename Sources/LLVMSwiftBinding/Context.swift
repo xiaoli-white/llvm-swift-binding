@@ -104,12 +104,32 @@ public final class Context {
         wrapConstant(LLVMConstNeg(value.ref)!)
     }
 
+    public func constantNSWNeg(_ value: Constant) -> Constant {
+        wrapConstant(LLVMConstNSWNeg(value.ref)!)
+    }
+
     public func constantAdd(_ lhs: Constant, _ rhs: Constant) -> Constant {
         wrapConstant(LLVMConstAdd(lhs.ref, rhs.ref)!)
     }
 
+    public func constantNSWAdd(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstNSWAdd(lhs.ref, rhs.ref)!)
+    }
+
+    public func constantNUWAdd(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstNUWAdd(lhs.ref, rhs.ref)!)
+    }
+
     public func constantSub(_ lhs: Constant, _ rhs: Constant) -> Constant {
         wrapConstant(LLVMConstSub(lhs.ref, rhs.ref)!)
+    }
+
+    public func constantNSWSub(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstNSWSub(lhs.ref, rhs.ref)!)
+    }
+
+    public func constantNUWSub(_ lhs: Constant, _ rhs: Constant) -> Constant {
+        wrapConstant(LLVMConstNUWSub(lhs.ref, rhs.ref)!)
     }
 
     public func constantTrunc(_ value: Constant, to type: Type) -> Constant {

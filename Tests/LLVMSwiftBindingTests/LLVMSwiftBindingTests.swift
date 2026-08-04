@@ -2084,5 +2084,36 @@ func jitAddFunction() throws {
     #expect(module.namedMetadataOperandCount("llvm.dbg.cu") == 1)
     #expect(module.namedMetadataOperands("custom.meta").count == 1)
 }
+
+@Test func icmpFcmpPredicates() throws {
+    let ctx = Context()
+    let module = Module(name: "preds", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32, ctx.double, ctx.double])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let icmp = builder.buildICmp(LLVMIntSGT, main.parameter(at: 0), main.parameter(at: 1), name: "i")
+    let fcmp = builder.buildFCmp(LLVMRealOGT, main.parameter(at: 2), main.parameter(at: 3), name: "f")
+    builder.buildRet(ctx.constantInt(0, type: i32))
+
+    #expect(icmp.predicate == LLVMIntSGT)
+    #expect(fcmp.predicate == LLVMRealOGT)
+    try module.verify()
+}
+
+@Test func constantExprArithmetic() throws {
+    let ctx = Context()
+    let i32 = ctx.int32
+    let five = ctx.constantInt(5, type: i32)
+    let three = ctx.constantInt(3, type: i32)
+
+    #expect((ctx.constantNSWAdd(five, three) as? ConstantInt)?.unsignedValue == 8)
+    #expect((ctx.constantNUWAdd(five, three) as? ConstantInt)?.unsignedValue == 8)
+    #expect((ctx.constantNSWSub(five, three) as? ConstantInt)?.signedValue == 2)
+    #expect((ctx.constantNUWSub(five, three) as? ConstantInt)?.unsignedValue == 2)
+    #expect((ctx.constantNSWNeg(five) as? ConstantInt)?.signedValue == -5)
+}
 }
 
