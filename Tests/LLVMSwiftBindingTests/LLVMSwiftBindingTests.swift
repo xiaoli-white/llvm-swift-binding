@@ -1971,5 +1971,33 @@ func jitAddFunction() throws {
     #expect(ir.contains("fastcc"))
     try module.verify()
 }
+
+@Test func instructionOpcodeNames() throws {
+    let ctx = Context()
+    let module = Module(name: "opcodes", in: ctx)
+    let i32 = ctx.int32
+    let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+    let main = module.addFunction("main", type: mainType)
+    let entry = main.appendBasicBlock("entry")
+    let builder = Builder(in: ctx)
+    builder.positionAtEnd(of: entry)
+    let p0 = main.parameter(at: 0)
+    let add = builder.buildAdd(p0, main.parameter(at: 1), name: "s")
+    let icmp = builder.buildICmp(LLVMIntEQ, p0, main.parameter(at: 1), name: "c")
+    builder.buildRet(add)
+
+    #expect(add.opcode == LLVMAdd)
+    #expect(add.opcodeName == "add")
+    #expect(icmp.opcode == LLVMICmp)
+    #expect(icmp.opcodeName == "icmp")
+    #expect(entry.terminator?.opcodeName == "ret")
+
+    #expect(module.context.ref == ctx.ref)
+    let ptrType = ctx.pointerType()
+    #expect(ptrType.addressSpace == 0)
+    let addrSpacePtr = ctx.pointerType(addressSpace: 3)
+    #expect(addrSpacePtr.addressSpace == 3)
+    #expect(ctx.int32.width == 32)
+}
 }
 

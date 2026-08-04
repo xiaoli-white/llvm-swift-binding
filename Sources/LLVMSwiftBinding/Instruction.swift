@@ -86,6 +86,71 @@ public class Instruction: Value {
         return inst
     }
 
+    public var opcode: LLVMOpcode {
+        LLVMGetInstructionOpcode(ref)
+    }
+
+    public var opcodeName: String {
+        switch opcode {
+        case LLVMRet: return "ret"
+        case LLVMBr: return "br"
+        case LLVMSwitch: return "switch"
+        case LLVMIndirectBr: return "indirectbr"
+        case LLVMInvoke: return "invoke"
+        case LLVMUnreachable: return "unreachable"
+        case LLVMAlloca: return "alloca"
+        case LLVMLoad: return "load"
+        case LLVMStore: return "store"
+        case LLVMGetElementPtr: return "getelementptr"
+        case LLVMICmp: return "icmp"
+        case LLVMFCmp: return "fcmp"
+        case LLVMCall: return "call"
+        case LLVMCallBr: return "callbr"
+        case LLVMPHI: return "phi"
+        case LLVMSelect: return "select"
+        case LLVMAdd: return "add"
+        case LLVMSub: return "sub"
+        case LLVMMul: return "mul"
+        case LLVMUDiv: return "udiv"
+        case LLVMSDiv: return "sdiv"
+        case LLVMURem: return "urem"
+        case LLVMSRem: return "srem"
+        case LLVMShl: return "shl"
+        case LLVMLShr: return "lshr"
+        case LLVMAShr: return "ashr"
+        case LLVMAnd: return "and"
+        case LLVMOr: return "or"
+        case LLVMXor: return "xor"
+        case LLVMFAdd: return "fadd"
+        case LLVMFSub: return "fsub"
+        case LLVMFMul: return "fmul"
+        case LLVMFDiv: return "fdiv"
+        case LLVMFRem: return "frem"
+        case LLVMFNeg: return "fneg"
+        case LLVMTrunc: return "trunc"
+        case LLVMZExt: return "zext"
+        case LLVMSExt: return "sext"
+        case LLVMFPToUI: return "fptoui"
+        case LLVMFPToSI: return "fptosi"
+        case LLVMUIToFP: return "uitofp"
+        case LLVMSIToFP: return "sitofp"
+        case LLVMFPTrunc: return "fptrunc"
+        case LLVMFPExt: return "fpext"
+        case LLVMPtrToInt: return "ptrtoint"
+        case LLVMIntToPtr: return "inttoptr"
+        case LLVMBitCast: return "bitcast"
+        case LLVMAddrSpaceCast: return "addrspacecast"
+        case LLVMExtractElement: return "extractelement"
+        case LLVMInsertElement: return "insertelement"
+        case LLVMShuffleVector: return "shufflevector"
+        case LLVMExtractValue: return "extractvalue"
+        case LLVMInsertValue: return "insertvalue"
+        case LLVMFreeze: return "freeze"
+        case LLVMLandingPad: return "landingpad"
+        default: return "unknown"
+        }
+    }
+
     public var operandBundles: [OperandBundle] {
         let opcode = LLVMGetInstructionOpcode(ref)
         guard opcode == LLVMCall || opcode == LLVMInvoke || opcode == LLVMCallBr else { return [] }
