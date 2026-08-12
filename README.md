@@ -41,6 +41,8 @@ import LLVMSwiftBinding
 
 ## Usage
 
+For a complete walkthrough of every workflow — JIT execution (MCJIT and ORC), optimization passes, code generation, IR reading, debug info, object inspection — see the [User Guide](docs/UserGuide.md).
+
 ### Generate IR
 
 ```swift
@@ -105,6 +107,8 @@ Sources/
   LLVMSwiftBinding/      28 Swift files, one area per file
 Tests/
   LLVMSwiftBindingTests/ swift-testing suite
+docs/
+  UserGuide.md           user guide (full workflow walkthrough)
 ```
 
 ## Testing
