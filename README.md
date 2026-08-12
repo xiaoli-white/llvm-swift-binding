@@ -30,7 +30,7 @@ A type-safe Swift binding for the [LLVM C API](https://llvm.org/docs/CoreFunctio
 Add as a dependency in `Package.swift`:
 
 ```swift
-.package(path: "../llvm-swift-binding")
+.package(url: "https://github.com/xiaoli-white/llvm-swift-binding", from: "1.0.0")
 ```
 
 ```swift

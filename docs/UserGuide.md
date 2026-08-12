@@ -15,7 +15,7 @@ JIT-executing — all from Swift.
 Add the package to your `Package.swift`:
 
 ```swift
-.package(path: "../llvm-swift-binding")
+.package(url: "https://github.com/xiaoli-white/llvm-swift-binding", from: "1.0.0")
 ```
 
 Then import it:
