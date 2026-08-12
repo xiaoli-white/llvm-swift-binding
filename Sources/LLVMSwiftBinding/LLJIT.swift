@@ -64,10 +64,4 @@ public final class LLJIT {
         }
         return UInt64(address)
     }
-
-    public func runFunction(_ name: String) throws -> Int32 {
-        let address = try lookup(name)
-        let fn = unsafeBitCast(UInt(address), to: (@convention(c) () -> Int32).self)
-        return fn()
-    }
 }

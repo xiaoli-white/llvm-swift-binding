@@ -288,7 +288,9 @@ struct LLVMSwiftBindingTests {
         #expect(jit.globalPrefix == "@")
         try jit.enableDebugSupport()
         try jit.addModule(module)
-        let result = try jit.runFunction("main")
+        let address = try jit.lookup("main")
+        let fn = unsafeBitCast(UInt(address), to: (@convention(c) () -> Int32).self)
+        let result = fn()
         #expect(result == 42)
     }
 
@@ -317,7 +319,9 @@ struct LLVMSwiftBindingTests {
 
         let jit = try LLJIT()
         try jit.addModule(module)
-        let result = try jit.runFunction("main")
+        let address = try jit.lookup("main")
+        let fn = unsafeBitCast(UInt(address), to: (@convention(c) () -> Int32).self)
+        let result = fn()
         #expect(result == 42)
     }
 
