@@ -26,9 +26,9 @@ public class Type {
         case LLVMHalfTypeKind, LLVMFloatTypeKind, LLVMDoubleTypeKind,
              LLVMX86_FP80TypeKind, LLVMFP128TypeKind, LLVMPPC_FP128TypeKind,
              LLVMBFloatTypeKind:
-            return true
+            true
         default:
-            return false
+            false
         }
     }
 

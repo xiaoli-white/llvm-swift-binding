@@ -6,7 +6,7 @@ public final class Module {
     public var ownsRef: Bool = true
 
     public init(name: String, in context: Context) {
-        self.ref = LLVMModuleCreateWithNameInContext(name, context.ref)!
+        ref = LLVMModuleCreateWithNameInContext(name, context.ref)!
         self.context = context
     }
 
@@ -41,7 +41,7 @@ public final class Module {
     }
 
     public func function(named name: String) -> Function? {
-        var found: LLVMValueRef? = nil
+        var found: LLVMValueRef?
         name.withCString { namePtr in
             found = LLVMGetNamedFunctionWithLength(ref, namePtr, name.utf8.count)
         }
@@ -69,12 +69,12 @@ public final class Module {
     }
 
     public func addAlias(_ name: String, type: Type, aliasee: Value, addressSpace: UInt32 = 0) -> GlobalAlias {
-        let ref = LLVMAddAlias2(self.ref, type.ref, addressSpace, aliasee.ref, name)!
+        let ref = LLVMAddAlias2(ref, type.ref, addressSpace, aliasee.ref, name)!
         return GlobalAlias(ref: ref, module: self)
     }
 
     public func alias(named name: String) -> GlobalAlias? {
-        var found: LLVMValueRef? = nil
+        var found: LLVMValueRef?
         name.withCString { namePtr in
             found = LLVMGetNamedGlobalAlias(ref, namePtr, name.utf8.count)
         }
@@ -99,7 +99,7 @@ public final class Module {
     }
 
     public func ifunc(named name: String) -> GlobalIFunc? {
-        var found: LLVMValueRef? = nil
+        var found: LLVMValueRef?
         name.withCString { namePtr in
             found = LLVMGetNamedGlobalIFunc(ref, namePtr, name.utf8.count)
         }
@@ -119,12 +119,12 @@ public final class Module {
     }
 
     public func addGlobal(_ name: String, type: Type) -> GlobalVariable {
-        let ref = LLVMAddGlobal(self.ref, type.ref, name)!
+        let ref = LLVMAddGlobal(ref, type.ref, name)!
         return GlobalVariable(ref: ref, module: self)
     }
 
     public func global(named name: String) -> GlobalVariable? {
-        var found: LLVMValueRef? = nil
+        var found: LLVMValueRef?
         name.withCString { namePtr in
             found = LLVMGetNamedGlobalWithLength(self.ref, namePtr, name.utf8.count)
         }
@@ -150,7 +150,7 @@ public final class Module {
 
     public var identifier: String {
         get {
-            var length: Int = 0
+            var length = 0
             guard let ptr = LLVMGetModuleIdentifier(ref, &length) else { return "" }
             let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
             return String(decoding: bytes, as: UTF8.self)
@@ -164,7 +164,7 @@ public final class Module {
 
     public var sourceFileName: String {
         get {
-            var length: Int = 0
+            var length = 0
             guard let ptr = LLVMGetSourceFileName(ref, &length) else { return "" }
             let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
             return String(decoding: bytes, as: UTF8.self)
@@ -178,7 +178,7 @@ public final class Module {
 
     public var inlineAsm: String {
         get {
-            var length: Int = 0
+            var length = 0
             guard let ptr = LLVMGetModuleInlineAsm(ref, &length) else { return "" }
             let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
             return String(decoding: bytes, as: UTF8.self)
@@ -201,7 +201,7 @@ public final class Module {
         guard let first = LLVMGetFirstNamedMetadata(ref) else { return [] }
         var current: LLVMNamedMDNodeRef? = first
         while let node = current {
-            var length: Int = 0
+            var length = 0
             if let ptr = LLVMGetNamedMetadataName(node, &length) {
                 let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
                 result.append(String(decoding: bytes, as: UTF8.self))

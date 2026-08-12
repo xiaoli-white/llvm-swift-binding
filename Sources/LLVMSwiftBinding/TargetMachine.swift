@@ -47,15 +47,16 @@ public final class TargetMachine {
     public var ownsRef: Bool = true
 
     public init(target: Target,
-         triple: String,
-         cpu: String? = nil,
-         features: String? = nil,
-         optLevel: LLVMCodeGenOptLevel = LLVMCodeGenLevelDefault,
-         relocMode: LLVMRelocMode = LLVMRelocDefault,
-         codeModel: LLVMCodeModel = LLVMCodeModelDefault) {
+                triple: String,
+                cpu: String? = nil,
+                features: String? = nil,
+                optLevel: LLVMCodeGenOptLevel = LLVMCodeGenLevelDefault,
+                relocMode: LLVMRelocMode = LLVMRelocDefault,
+                codeModel: LLVMCodeModel = LLVMCodeModelDefault)
+    {
         let cpuStr = cpu ?? ""
         let featuresStr = features ?? ""
-        self.ref = cpuStr.withCString { cpuPtr in
+        ref = cpuStr.withCString { cpuPtr in
             featuresStr.withCString { featuresPtr in
                 triple.withCString { triplePtr in
                     LLVMCreateTargetMachine(
@@ -69,7 +70,7 @@ public final class TargetMachine {
 
     public init(ref: LLVMTargetMachineRef) {
         self.ref = ref
-        self.ownsRef = false
+        ownsRef = false
     }
 
     deinit {
@@ -117,9 +118,10 @@ public final class TargetMachine {
     }
 
     public func emitToFile(module: Module,
-                    _ filename: String,
-                    fileType: LLVMCodeGenFileType = LLVMObjectFile) throws {
-        var errMsg: UnsafeMutablePointer<CChar>? = nil
+                           _ filename: String,
+                           fileType: LLVMCodeGenFileType = LLVMObjectFile) throws
+    {
+        var errMsg: UnsafeMutablePointer<CChar>?
         let result = filename.withCString { filenamePtr -> Int32 in
             LLVMTargetMachineEmitToFile(ref, module.ref, filenamePtr, fileType, &errMsg)
         }

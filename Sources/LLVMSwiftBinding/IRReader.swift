@@ -1,7 +1,7 @@
 import cLLVM
 
-extension Module {
-    public static func parseIR(_ ir: String, in context: Context, bufferName: String = "ir") throws -> Module {
+public extension Module {
+    static func parseIR(_ ir: String, in context: Context, bufferName: String = "ir") throws -> Module {
         let memBuf = MemoryBuffer.fromString(ir, bufferName: bufferName)
         var outModule: LLVMModuleRef? = nil
         var errMsg: UnsafeMutablePointer<CChar>? = nil
@@ -13,7 +13,7 @@ extension Module {
         return Module(ref: outModule!, context: context)
     }
 
-    public static func parseIRFile(_ path: String, in context: Context) throws -> Module {
+    static func parseIRFile(_ path: String, in context: Context) throws -> Module {
         let memBuf = try MemoryBuffer.fromFile(path)
         var outModule: LLVMModuleRef? = nil
         var errMsg: UnsafeMutablePointer<CChar>? = nil
@@ -25,7 +25,7 @@ extension Module {
         return Module(ref: outModule!, context: context)
     }
 
-    public static func parseBitcode(_ data: [UInt8], in context: Context) throws -> Module {
+    static func parseBitcode(_ data: [UInt8], in context: Context) throws -> Module {
         let memBuf = MemoryBuffer.fromBytes(data, bufferName: "bitcode")
         var outModule: LLVMModuleRef? = nil
         let result = LLVMParseBitcodeInContext2(context.ref, memBuf.ref, &outModule)
@@ -35,7 +35,7 @@ extension Module {
         return Module(ref: outModule!, context: context)
     }
 
-    public static func parseBitcodeFile(_ path: String, in context: Context) throws -> Module {
+    static func parseBitcodeFile(_ path: String, in context: Context) throws -> Module {
         let memBuf = try MemoryBuffer.fromFile(path)
         var outModule: LLVMModuleRef? = nil
         let result = LLVMParseBitcodeInContext2(context.ref, memBuf.ref, &outModule)
@@ -45,7 +45,7 @@ extension Module {
         return Module(ref: outModule!, context: context)
     }
 
-    public func writeBitcode(to path: String) throws {
+    func writeBitcode(to path: String) throws {
         let result = path.withCString { pathPtr -> Int32 in
             LLVMWriteBitcodeToFile(ref, pathPtr)
         }
@@ -54,7 +54,7 @@ extension Module {
         }
     }
 
-    public func writeBitcodeToMemoryBuffer() -> MemoryBuffer {
+    func writeBitcodeToMemoryBuffer() -> MemoryBuffer {
         let buf = LLVMWriteBitcodeToMemoryBuffer(ref)!
         return MemoryBuffer(ref: buf)
     }

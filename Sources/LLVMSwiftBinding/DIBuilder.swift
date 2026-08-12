@@ -5,7 +5,7 @@ public final class DIBuilder {
     public let module: Module
 
     public init(module: Module) {
-        self.ref = LLVMCreateDIBuilder(module.ref)
+        ref = LLVMCreateDIBuilder(module.ref)
         self.module = module
     }
 
@@ -31,13 +31,14 @@ public final class DIBuilder {
     }
 
     public func createCompileUnit(language: LLVMDWARFSourceLanguage,
-                           file: Metadata,
-                           producer: String,
-                           isOptimized: Bool = false,
-                           flags: String = "",
-                           runtimeVersion: UInt32 = 0,
-                           emissionKind: LLVMDWARFEmissionKind = LLVMDWARFEmissionFull,
-                           splitDebugInlining: Bool = true) -> Metadata {
+                                  file: Metadata,
+                                  producer: String,
+                                  isOptimized: Bool = false,
+                                  flags: String = "",
+                                  runtimeVersion: UInt32 = 0,
+                                  emissionKind: LLVMDWARFEmissionKind = LLVMDWARFEmissionFull,
+                                  splitDebugInlining: Bool = true) -> Metadata
+    {
         let metaRef = producer.withCString { producerPtr in
             flags.withCString { flagsPtr in
                 LLVMDIBuilderCreateCompileUnit(
@@ -57,7 +58,7 @@ public final class DIBuilder {
     }
 
     public func createSubroutineType(file: Metadata, returnTypes: [Metadata] = []) -> Metadata {
-        var types: [LLVMMetadataRef?] = returnTypes.map { $0.ref }
+        var types: [LLVMMetadataRef?] = returnTypes.map(\.ref)
         let metaRef = types.withUnsafeMutableBufferPointer { buffer in
             LLVMDIBuilderCreateSubroutineType(
                 ref, file.ref, buffer.baseAddress,
@@ -68,16 +69,17 @@ public final class DIBuilder {
     }
 
     public func createFunction(scope: Metadata,
-                        name: String,
-                        linkageName: String = "",
-                        file: Metadata,
-                        line: UInt32,
-                        subroutineType: Metadata,
-                        isLocalToUnit: Bool = true,
-                        isDefinition: Bool = true,
-                        scopeLine: UInt32 = 0,
-                        flags: LLVMDIFlags = LLVMDIFlagZero,
-                        isOptimized: Bool = false) -> Metadata {
+                               name: String,
+                               linkageName: String = "",
+                               file: Metadata,
+                               line: UInt32,
+                               subroutineType: Metadata,
+                               isLocalToUnit: Bool = true,
+                               isDefinition: Bool = true,
+                               scopeLine: UInt32 = 0,
+                               flags: LLVMDIFlags = LLVMDIFlagZero,
+                               isOptimized: Bool = false) -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             linkageName.withCString { linkagePtr in
                 LLVMDIBuilderCreateFunction(
@@ -98,14 +100,21 @@ public final class DIBuilder {
         return Metadata(ref: metaRef!)
     }
 
-    public func createDebugLocation(line: UInt32, column: UInt32, scope: Metadata, inlinedAt: Metadata? = nil) -> Metadata {
+    public func createDebugLocation(line: UInt32, column: UInt32, scope: Metadata,
+                                    inlinedAt: Metadata? = nil) -> Metadata
+    {
         let metaRef = LLVMDIBuilderCreateDebugLocation(
             module.context.ref, line, column, scope.ref, inlinedAt?.ref
         )
         return Metadata(ref: metaRef!)
     }
 
-    public func createBasicType(name: String, sizeInBits: UInt64, encoding: LLVMDWARFTypeEncoding, flags: LLVMDIFlags = LLVMDIFlagZero) -> Metadata {
+    public func createBasicType(
+        name: String,
+        sizeInBits: UInt64,
+        encoding: LLVMDWARFTypeEncoding,
+        flags: LLVMDIFlags = LLVMDIFlagZero
+    ) -> Metadata {
         let metaRef = name.withCString { namePtr in
             LLVMDIBuilderCreateBasicType(ref, namePtr, name.utf8.count, sizeInBits, encoding, flags)
         }
@@ -113,13 +122,14 @@ public final class DIBuilder {
     }
 
     public func createParameterVariable(scope: Metadata,
-                                  name: String,
-                                  argNo: UInt32,
-                                  file: Metadata,
-                                  line: UInt32,
-                                  type: Metadata,
-                                  alwaysPreserve: Bool = false,
-                                  flags: LLVMDIFlags = LLVMDIFlagZero) -> Metadata {
+                                        name: String,
+                                        argNo: UInt32,
+                                        file: Metadata,
+                                        line: UInt32,
+                                        type: Metadata,
+                                        alwaysPreserve: Bool = false,
+                                        flags: LLVMDIFlags = LLVMDIFlagZero) -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             LLVMDIBuilderCreateParameterVariable(
                 ref, scope.ref, namePtr, name.utf8.count,
@@ -131,13 +141,14 @@ public final class DIBuilder {
     }
 
     public func createAutoVariable(scope: Metadata,
-                            name: String,
-                            file: Metadata,
-                            line: UInt32,
-                            type: Metadata,
-                            alwaysPreserve: Bool = false,
-                            flags: LLVMDIFlags = LLVMDIFlagZero,
-                            alignInBits: UInt32 = 0) -> Metadata {
+                                   name: String,
+                                   file: Metadata,
+                                   line: UInt32,
+                                   type: Metadata,
+                                   alwaysPreserve: Bool = false,
+                                   flags: LLVMDIFlags = LLVMDIFlagZero,
+                                   alignInBits: UInt32 = 0) -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             LLVMDIBuilderCreateAutoVariable(
                 ref, scope.ref, namePtr, name.utf8.count,
@@ -148,17 +159,24 @@ public final class DIBuilder {
         return Metadata(ref: metaRef!)
     }
 
-    public func insertDeclareAtEnd(_ value: Value, diVar: Metadata, expr: Metadata, location: Metadata, block: BasicBlock) {
+    public func insertDeclareAtEnd(
+        _ value: Value,
+        diVar: Metadata,
+        expr: Metadata,
+        location: Metadata,
+        block: BasicBlock
+    ) {
         LLVMDIBuilderInsertDeclareRecordAtEnd(
             ref, value.ref, diVar.ref, expr.ref, location.ref, block.ref
         )
     }
 
     public func createPointerType(_ pointee: Metadata,
-                           sizeInBits: UInt64,
-                           alignInBits: UInt32 = 0,
-                           addressSpace: UInt32 = 0,
-                           name: String = "") -> Metadata {
+                                  sizeInBits: UInt64,
+                                  alignInBits: UInt32 = 0,
+                                  addressSpace: UInt32 = 0,
+                                  name: String = "") -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             LLVMDIBuilderCreatePointerType(
                 ref, pointee.ref, sizeInBits, alignInBits, addressSpace, namePtr, name.utf8.count
@@ -178,11 +196,12 @@ public final class DIBuilder {
     }
 
     public func createTypedef(type: Metadata,
-                       name: String,
-                       file: Metadata,
-                       line: UInt32,
-                       scope: Metadata,
-                       alignInBits: UInt32 = 0) -> Metadata {
+                              name: String,
+                              file: Metadata,
+                              line: UInt32,
+                              scope: Metadata,
+                              alignInBits: UInt32 = 0) -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             LLVMDIBuilderCreateTypedef(
                 ref, type.ref, namePtr, name.utf8.count, file.ref, line, scope.ref, alignInBits
@@ -192,15 +211,16 @@ public final class DIBuilder {
     }
 
     public func createStructType(scope: Metadata,
-                          name: String,
-                          file: Metadata,
-                          line: UInt32,
-                          sizeInBits: UInt64,
-                          alignInBits: UInt32,
-                          flags: LLVMDIFlags = LLVMDIFlagZero,
-                          derivedFrom: Metadata? = nil,
-                          elements: [Metadata] = []) -> Metadata {
-        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+                                 name: String,
+                                 file: Metadata,
+                                 line: UInt32,
+                                 sizeInBits: UInt64,
+                                 alignInBits: UInt32,
+                                 flags: LLVMDIFlags = LLVMDIFlagZero,
+                                 derivedFrom: Metadata? = nil,
+                                 elements: [Metadata] = []) -> Metadata
+    {
+        var elems: [LLVMMetadataRef?] = elements.map(\.ref)
         let metaRef = name.withCString { namePtr in
             elems.withUnsafeMutableBufferPointer { buffer in
                 LLVMDIBuilderCreateStructType(
@@ -214,14 +234,15 @@ public final class DIBuilder {
     }
 
     public func createMemberType(scope: Metadata,
-                          name: String,
-                          file: Metadata,
-                          line: UInt32,
-                          sizeInBits: UInt64,
-                          alignInBits: UInt32,
-                          offsetInBits: UInt64,
-                          flags: LLVMDIFlags = LLVMDIFlagZero,
-                          type: Metadata) -> Metadata {
+                                 name: String,
+                                 file: Metadata,
+                                 line: UInt32,
+                                 sizeInBits: UInt64,
+                                 alignInBits: UInt32,
+                                 offsetInBits: UInt64,
+                                 flags: LLVMDIFlags = LLVMDIFlagZero,
+                                 type: Metadata) -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             LLVMDIBuilderCreateMemberType(
                 ref, scope.ref, namePtr, name.utf8.count, file.ref, line,
@@ -232,10 +253,11 @@ public final class DIBuilder {
     }
 
     public func createArrayType(size: UInt64,
-                         alignInBits: UInt32,
-                         elementType: Metadata,
-                         subscripts: [Metadata]) -> Metadata {
-        var subs: [LLVMMetadataRef?] = subscripts.map { $0.ref }
+                                alignInBits: UInt32,
+                                elementType: Metadata,
+                                subscripts: [Metadata]) -> Metadata
+    {
+        var subs: [LLVMMetadataRef?] = subscripts.map(\.ref)
         let metaRef = subs.withUnsafeMutableBufferPointer { buffer in
             LLVMDIBuilderCreateArrayType(
                 ref, size, alignInBits, elementType.ref, buffer.baseAddress, UInt32(subscripts.count)
@@ -245,14 +267,15 @@ public final class DIBuilder {
     }
 
     public func createUnionType(scope: Metadata,
-                         name: String,
-                         file: Metadata,
-                         line: UInt32,
-                         sizeInBits: UInt64,
-                         alignInBits: UInt32,
-                         flags: LLVMDIFlags = LLVMDIFlagZero,
-                         elements: [Metadata] = []) -> Metadata {
-        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+                                name: String,
+                                file: Metadata,
+                                line: UInt32,
+                                sizeInBits: UInt64,
+                                alignInBits: UInt32,
+                                flags: LLVMDIFlags = LLVMDIFlagZero,
+                                elements: [Metadata] = []) -> Metadata
+    {
+        var elems: [LLVMMetadataRef?] = elements.map(\.ref)
         let metaRef = name.withCString { namePtr in
             elems.withUnsafeMutableBufferPointer { buffer in
                 LLVMDIBuilderCreateUnionType(
@@ -266,13 +289,14 @@ public final class DIBuilder {
     }
 
     public func createForwardDecl(tag: UInt32,
-                           name: String,
-                           scope: Metadata,
-                           file: Metadata,
-                           line: UInt32,
-                           sizeInBits: UInt64 = 0,
-                           alignInBits: UInt32 = 0,
-                           uniqueIdentifier: String = "") -> Metadata {
+                                  name: String,
+                                  scope: Metadata,
+                                  file: Metadata,
+                                  line: UInt32,
+                                  sizeInBits: UInt64 = 0,
+                                  alignInBits: UInt32 = 0,
+                                  uniqueIdentifier: String = "") -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             uniqueIdentifier.withCString { uniquePtr in
                 LLVMDIBuilderCreateForwardDecl(
@@ -305,7 +329,7 @@ public final class DIBuilder {
     }
 
     public func getOrCreateArray(_ elements: [Metadata]) -> Metadata {
-        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        var elems: [LLVMMetadataRef?] = elements.map(\.ref)
         let metaRef = elems.withUnsafeMutableBufferPointer { buffer in
             LLVMDIBuilderGetOrCreateArray(ref, buffer.baseAddress, buffer.count)
         }
@@ -318,15 +342,16 @@ public final class DIBuilder {
     }
 
     public func createGlobalVariableExpression(scope: Metadata,
-                                        name: String,
-                                        linkageName: String = "",
-                                        file: Metadata,
-                                        line: UInt32,
-                                        type: Metadata,
-                                        isLocalToUnit: Bool = true,
-                                        expr: Metadata,
-                                        decl: Metadata? = nil,
-                                        alignInBits: UInt32 = 0) -> Metadata {
+                                               name: String,
+                                               linkageName: String = "",
+                                               file: Metadata,
+                                               line: UInt32,
+                                               type: Metadata,
+                                               isLocalToUnit: Bool = true,
+                                               expr: Metadata,
+                                               decl: Metadata? = nil,
+                                               alignInBits: UInt32 = 0) -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             linkageName.withCString { linkagePtr in
                 LLVMDIBuilderCreateGlobalVariableExpression(
@@ -343,20 +368,22 @@ public final class DIBuilder {
     }
 
     public func insertDbgValueRecordAtEnd(_ value: Value,
-                                   diVar: Metadata,
-                                   expr: Metadata,
-                                   location: Metadata,
-                                   block: BasicBlock) {
+                                          diVar: Metadata,
+                                          expr: Metadata,
+                                          location: Metadata,
+                                          block: BasicBlock)
+    {
         LLVMDIBuilderInsertDbgValueRecordAtEnd(
             ref, value.ref, diVar.ref, expr.ref, location.ref, block.ref
         )
     }
 
     public func createModule(scope: Metadata,
-                      name: String,
-                      configMacros: String = "",
-                      includePath: String = "",
-                      apiNotesFile: String = "") -> Metadata {
+                             name: String,
+                             configMacros: String = "",
+                             includePath: String = "",
+                             apiNotesFile: String = "") -> Metadata
+    {
         let metaRef = name.withCString { namePtr in
             configMacros.withCString { macrosPtr in
                 includePath.withCString { includePtr in
@@ -390,14 +417,15 @@ public final class DIBuilder {
     }
 
     public func createEnumerationType(scope: Metadata,
-                               name: String,
-                               file: Metadata,
-                               line: UInt32,
-                               sizeInBits: UInt64,
-                               alignInBits: UInt32,
-                               elements: [Metadata],
-                               classType: Metadata? = nil) -> Metadata {
-        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+                                      name: String,
+                                      file: Metadata,
+                                      line: UInt32,
+                                      sizeInBits: UInt64,
+                                      alignInBits: UInt32,
+                                      elements: [Metadata],
+                                      classType: Metadata? = nil) -> Metadata
+    {
+        var elems: [LLVMMetadataRef?] = elements.map(\.ref)
         let metaRef = name.withCString { namePtr in
             elems.withUnsafeMutableBufferPointer { buffer in
                 LLVMDIBuilderCreateEnumerationType(
@@ -415,7 +443,9 @@ public final class DIBuilder {
         return Metadata(ref: metaRef!)
     }
 
-    public func createImportedModuleFromNamespace(scope: Metadata, namespace: Metadata, file: Metadata, line: UInt32) -> Metadata {
+    public func createImportedModuleFromNamespace(scope: Metadata, namespace: Metadata, file: Metadata,
+                                                  line: UInt32) -> Metadata
+    {
         let metaRef = LLVMDIBuilderCreateImportedModuleFromNamespace(ref, scope.ref, namespace.ref, file.ref, line)
         return Metadata(ref: metaRef!)
     }

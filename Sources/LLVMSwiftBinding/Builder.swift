@@ -6,7 +6,7 @@ public final class Builder {
     private var currentModule: Module?
 
     public init(in context: Context) {
-        self.ref = LLVMCreateBuilderInContext(context.ref)!
+        ref = LLVMCreateBuilderInContext(context.ref)!
         self.context = context
     }
 
@@ -242,7 +242,7 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildCondBr(_ cond: Value, then: BasicBlock, `else` elseBlock: BasicBlock) -> BranchInst {
+    public func buildCondBr(_ cond: Value, then: BasicBlock, else elseBlock: BasicBlock) -> BranchInst {
         let inst = LLVMBuildCondBr(ref, cond.ref, then.ref, elseBlock.ref)!
         return BranchInst(ref: inst, context: context, module: currentModule)
     }
@@ -262,7 +262,7 @@ public final class Builder {
     @discardableResult
     public func buildCall(_ function: Function, _ args: [Value], name: String = "") -> CallInst {
         let funcTypeRef = LLVMGlobalGetValueType(function.ref)!
-        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        var argRefs: [LLVMValueRef?] = args.map(\.ref)
         let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMBuildCall2(ref, funcTypeRef, function.ref, buffer.baseAddress, UInt32(args.count), name)
         }
@@ -276,14 +276,14 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildSelect(_ cond: Value, then: Value, `else`: Value, name: String = "") -> SelectInst {
+    public func buildSelect(_ cond: Value, then: Value, else: Value, name: String = "") -> SelectInst {
         let inst = LLVMBuildSelect(ref, cond.ref, then.ref, `else`.ref, name)!
         return SelectInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
     public func buildGEP(_ elementType: Type, _ ptr: Value, indices: [Value], name: String = "") -> GetElementPtrInst {
-        var idxRefs: [LLVMValueRef?] = indices.map { $0.ref }
+        var idxRefs: [LLVMValueRef?] = indices.map(\.ref)
         let inst = idxRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMBuildGEP2(ref, elementType.ref, ptr.ref, buffer.baseAddress, UInt32(indices.count), name)
         }
@@ -429,20 +429,47 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildAtomicRMW(_ op: LLVMAtomicRMWBinOp, _ ptr: Value, _ value: Value, ordering: LLVMAtomicOrdering, singleThread: Bool = false) -> AtomicRMWInst {
+    public func buildAtomicRMW(
+        _ op: LLVMAtomicRMWBinOp,
+        _ ptr: Value,
+        _ value: Value,
+        ordering: LLVMAtomicOrdering,
+        singleThread: Bool = false
+    ) -> AtomicRMWInst {
         let inst = LLVMBuildAtomicRMW(ref, op, ptr.ref, value.ref, ordering, singleThread ? 1 : 0)!
         return AtomicRMWInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildAtomicRMWSyncScope(_ op: LLVMAtomicRMWBinOp, _ ptr: Value, _ value: Value, ordering: LLVMAtomicOrdering, scope: UInt32) -> AtomicRMWInst {
+    public func buildAtomicRMWSyncScope(
+        _ op: LLVMAtomicRMWBinOp,
+        _ ptr: Value,
+        _ value: Value,
+        ordering: LLVMAtomicOrdering,
+        scope: UInt32
+    ) -> AtomicRMWInst {
         let inst = LLVMBuildAtomicRMWSyncScope(ref, op, ptr.ref, value.ref, ordering, scope)!
         return AtomicRMWInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildAtomicCmpXchg(_ ptr: Value, _ cmp: Value, _ new: Value, successOrdering: LLVMAtomicOrdering, failureOrdering: LLVMAtomicOrdering, singleThread: Bool = false) -> AtomicCmpXchgInst {
-        let inst = LLVMBuildAtomicCmpXchg(ref, ptr.ref, cmp.ref, new.ref, successOrdering, failureOrdering, singleThread ? 1 : 0)!
+    public func buildAtomicCmpXchg(
+        _ ptr: Value,
+        _ cmp: Value,
+        _ new: Value,
+        successOrdering: LLVMAtomicOrdering,
+        failureOrdering: LLVMAtomicOrdering,
+        singleThread: Bool = false
+    ) -> AtomicCmpXchgInst {
+        let inst = LLVMBuildAtomicCmpXchg(
+            ref,
+            ptr.ref,
+            cmp.ref,
+            new.ref,
+            successOrdering,
+            failureOrdering,
+            singleThread ? 1 : 0
+        )!
         return AtomicCmpXchgInst(ref: inst, context: context, module: currentModule)
     }
 
@@ -453,7 +480,9 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildInsertValue(_ aggregate: Value, _ element: Value, index: UInt32, name: String = "") -> InsertValueInst {
+    public func buildInsertValue(_ aggregate: Value, _ element: Value, index: UInt32,
+                                 name: String = "") -> InsertValueInst
+    {
         let inst = LLVMBuildInsertValue(ref, aggregate.ref, element.ref, index, name)!
         return InsertValueInst(ref: inst, context: context, module: currentModule)
     }
@@ -465,7 +494,9 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildInsertElement(_ vector: Value, _ element: Value, _ index: Value, name: String = "") -> InsertElementInst {
+    public func buildInsertElement(_ vector: Value, _ element: Value, _ index: Value,
+                                   name: String = "") -> InsertElementInst
+    {
         let inst = LLVMBuildInsertElement(ref, vector.ref, element.ref, index.ref, name)!
         return InsertElementInst(ref: inst, context: context, module: currentModule)
     }
@@ -495,17 +526,34 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildLandingPad(_ type: Type, personality: Value? = nil, numClauses: UInt32 = 0, name: String = "") -> LandingPadInst {
+    public func buildLandingPad(_ type: Type, personality: Value? = nil, numClauses: UInt32 = 0,
+                                name: String = "") -> LandingPadInst
+    {
         let inst = LLVMBuildLandingPad(ref, type.ref, personality?.ref, numClauses, name)!
         return LandingPadInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildInvoke(_ function: Function, _ args: [Value], then: BasicBlock, catch: BasicBlock, name: String = "") -> InvokeInst {
+    public func buildInvoke(
+        _ function: Function,
+        _ args: [Value],
+        then: BasicBlock,
+        catch: BasicBlock,
+        name: String = ""
+    ) -> InvokeInst {
         let funcTypeRef = LLVMGlobalGetValueType(function.ref)!
-        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        var argRefs: [LLVMValueRef?] = args.map(\.ref)
         let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
-            LLVMBuildInvoke2(ref, funcTypeRef, function.ref, buffer.baseAddress, UInt32(args.count), then.ref, `catch`.ref, name)
+            LLVMBuildInvoke2(
+                ref,
+                funcTypeRef,
+                function.ref,
+                buffer.baseAddress,
+                UInt32(args.count),
+                then.ref,
+                `catch`.ref,
+                name
+            )
         }
         return InvokeInst(ref: inst!, context: context, module: currentModule)
     }
@@ -523,34 +571,53 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildMemCpy(_ dest: Value, destAlign: UInt32 = 0, _ source: Value, sourceAlign: UInt32 = 0, _ len: Value) -> CallInst {
+    public func buildMemCpy(_ dest: Value, destAlign: UInt32 = 0, _ source: Value, sourceAlign: UInt32 = 0,
+                            _ len: Value) -> CallInst
+    {
         let inst = LLVMBuildMemCpy(ref, dest.ref, destAlign, source.ref, sourceAlign, len.ref)!
         return CallInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildMemMove(_ dest: Value, destAlign: UInt32 = 0, _ source: Value, sourceAlign: UInt32 = 0, _ len: Value) -> CallInst {
+    public func buildMemMove(
+        _ dest: Value,
+        destAlign: UInt32 = 0,
+        _ source: Value,
+        sourceAlign: UInt32 = 0,
+        _ len: Value
+    ) -> CallInst {
         let inst = LLVMBuildMemMove(ref, dest.ref, destAlign, source.ref, sourceAlign, len.ref)!
         return CallInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildCallBr(_ callee: Value, args: [Value], default dest: BasicBlock, indirectDests: [BasicBlock], bundles: [OperandBundle] = [], name: String = "") -> CallBrInst {
-        let calleeType: Type
-        if LLVMGetValueKind(callee.ref) == LLVMInlineAsmValueKind {
-            calleeType = Type(ref: LLVMGetInlineAsmFunctionType(callee.ref)!, context: context)
+    public func buildCallBr(
+        _ callee: Value,
+        args: [Value],
+        default dest: BasicBlock,
+        indirectDests: [BasicBlock],
+        bundles: [OperandBundle] = [],
+        name: String = ""
+    ) -> CallBrInst {
+        let calleeType: Type = if LLVMGetValueKind(callee.ref) == LLVMInlineAsmValueKind {
+            Type(ref: LLVMGetInlineAsmFunctionType(callee.ref)!, context: context)
         } else if let fn = callee as? Function {
-            calleeType = Type(ref: LLVMGlobalGetValueType(fn.ref)!, context: context)
+            Type(ref: LLVMGlobalGetValueType(fn.ref)!, context: context)
         } else {
-            calleeType = callee.type
+            callee.type
         }
-        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
-        var destRefs: [LLVMBasicBlockRef?] = indirectDests.map { $0.ref }
+        var argRefs: [LLVMValueRef?] = args.map(\.ref)
+        var destRefs: [LLVMBasicBlockRef?] = indirectDests.map(\.ref)
         var bundleRefs: [LLVMOperandBundleRef?] = []
         for bundle in bundles {
-            var bundleArgs: [LLVMValueRef?] = bundle.args.map { $0.ref }
+            var bundleArgs: [LLVMValueRef?] = bundle.args.map(\.ref)
             let bundleRef = bundleArgs.withUnsafeMutableBufferPointer { buffer in
-                LLVMCreateOperandBundle(bundle.tag, bundle.tag.utf8.count, buffer.baseAddress, UInt32(bundle.args.count))
+                LLVMCreateOperandBundle(
+                    bundle.tag,
+                    bundle.tag.utf8.count,
+                    buffer.baseAddress,
+                    UInt32(bundle.args.count)
+                )
             }
             bundleRefs.append(bundleRef)
         }
@@ -562,7 +629,19 @@ public final class Builder {
         let inst = argRefs.withUnsafeMutableBufferPointer { argBuf in
             destRefs.withUnsafeMutableBufferPointer { destBuf in
                 bundleRefs.withUnsafeMutableBufferPointer { bundleBuf in
-                    LLVMBuildCallBr(ref, calleeType.ref, callee.ref, dest.ref, destBuf.baseAddress, UInt32(indirectDests.count), argBuf.baseAddress, UInt32(args.count), bundleBuf.baseAddress, UInt32(bundles.count), name)
+                    LLVMBuildCallBr(
+                        ref,
+                        calleeType.ref,
+                        callee.ref,
+                        dest.ref,
+                        destBuf.baseAddress,
+                        UInt32(indirectDests.count),
+                        argBuf.baseAddress,
+                        UInt32(args.count),
+                        bundleBuf.baseAddress,
+                        UInt32(bundles.count),
+                        name
+                    )
                 }
             }
         }
@@ -583,7 +662,7 @@ public final class Builder {
 
     @discardableResult
     public func buildCatchPad(parentPad: Value?, args: [Value] = [], name: String = "") -> CatchPadInst {
-        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        var argRefs: [LLVMValueRef?] = args.map(\.ref)
         let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMBuildCatchPad(ref, parentPad?.ref, buffer.baseAddress, UInt32(args.count), name)
         }
@@ -592,7 +671,7 @@ public final class Builder {
 
     @discardableResult
     public func buildCleanupPad(parentPad: Value?, args: [Value] = [], name: String = "") -> CleanupPadInst {
-        var argRefs: [LLVMValueRef?] = args.map { $0.ref }
+        var argRefs: [LLVMValueRef?] = args.map(\.ref)
         let inst = argRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMBuildCleanupPad(ref, parentPad?.ref, buffer.baseAddress, UInt32(args.count), name)
         }
@@ -600,7 +679,9 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildCatchSwitch(parentPad: Value?, unwind: BasicBlock?, numHandlers: UInt32 = 0, name: String = "") -> CatchSwitchInst {
+    public func buildCatchSwitch(parentPad: Value?, unwind: BasicBlock?, numHandlers: UInt32 = 0,
+                                 name: String = "") -> CatchSwitchInst
+    {
         let inst = LLVMBuildCatchSwitch(ref, parentPad?.ref, unwind?.ref, numHandlers, name)!
         return CatchSwitchInst(ref: inst, context: context, module: currentModule)
     }

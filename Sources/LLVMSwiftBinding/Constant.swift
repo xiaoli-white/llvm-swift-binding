@@ -53,14 +53,14 @@ public final class ConstantDataArray: Constant {
 
     public var stringValue: String? {
         guard isConstantString else { return nil }
-        var length: Int = 0
+        var length = 0
         guard let ptr = LLVMGetAsString(ref, &length) else { return nil }
         let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
         return String(decoding: bytes, as: UTF8.self)
     }
 
     public var rawData: [UInt8] {
-        var size: Int = 0
+        var size = 0
         guard let ptr = LLVMGetRawDataValues(ref, &size) else { return [] }
         return UnsafeBufferPointer(start: ptr, count: size).map { UInt8(bitPattern: $0) }
     }
@@ -85,7 +85,7 @@ public final class BlockAddress: Constant {
 
     public var basicBlock: BasicBlock? {
         guard let block = LLVMGetBlockAddressBasicBlock(ref) else { return nil }
-        guard let function = function else { return nil }
+        guard let function else { return nil }
         return BasicBlock(ref: block, function: function, module: function.module!)
     }
 }

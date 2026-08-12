@@ -31,7 +31,7 @@ public final class Binary {
     public let buffer: MemoryBuffer
 
     public init(buffer: MemoryBuffer, context: Context? = nil) throws {
-        var errMsg: UnsafeMutablePointer<CChar>? = nil
+        var errMsg: UnsafeMutablePointer<CChar>?
         let ref = LLVMCreateBinary(buffer.ref, context?.ref, &errMsg)
         guard let ref else {
             let msg = errorMessage(from: errMsg)
@@ -78,14 +78,13 @@ public final class Binary {
         let iterator = first
         while LLVMObjectFileIsSectionIteratorAtEnd(ref, iterator) == 0 {
             let size = LLVMGetSectionSize(iterator)
-            let contents: [UInt8]
-            if let ptr = LLVMGetSectionContents(iterator), size > 0 {
-                contents = Array(UnsafeBufferPointer(
+            let contents: [UInt8] = if let ptr = LLVMGetSectionContents(iterator), size > 0 {
+                Array(UnsafeBufferPointer(
                     start: ptr.withMemoryRebound(to: UInt8.self, capacity: Int(size)) { $0 },
                     count: Int(size)
                 ))
             } else {
-                contents = []
+                []
             }
             let name = LLVMGetSectionName(iterator).map { String(cString: $0) } ?? ""
             result.append(SectionInfo(

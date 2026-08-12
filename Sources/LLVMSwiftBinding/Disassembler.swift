@@ -12,7 +12,7 @@ public final class Disassembler {
             }
         }
         guard let context else { return nil }
-        self.ref = context
+        ref = context
     }
 
     deinit {

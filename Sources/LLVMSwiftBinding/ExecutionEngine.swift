@@ -48,8 +48,8 @@ public final class ExecutionEngine {
         var options = LLVMMCJITCompilerOptions()
         LLVMInitializeMCJITCompilerOptions(&options, MemoryLayout<LLVMMCJITCompilerOptions>.size)
         options.OptLevel = optLevel
-        var engine: LLVMExecutionEngineRef? = nil
-        var errMsg: UnsafeMutablePointer<CChar>? = nil
+        var engine: LLVMExecutionEngineRef?
+        var errMsg: UnsafeMutablePointer<CChar>?
         let result = LLVMCreateMCJITCompilerForModule(
             &engine, module.ref, &options, MemoryLayout<LLVMMCJITCompilerOptions>.size, &errMsg
         )
@@ -57,7 +57,7 @@ public final class ExecutionEngine {
             let msg = errorMessage(from: errMsg)
             throw LLVMError.emitFailed(message: "failed to create execution engine: \(msg)")
         }
-        self.ref = engine!
+        ref = engine!
         self.module = module
         module.ownsRef = false
     }
@@ -67,7 +67,7 @@ public final class ExecutionEngine {
     }
 
     public func runFunction(_ function: Function, args: [GenericValue] = []) -> GenericValue? {
-        var argRefs: [LLVMGenericValueRef?] = args.map { $0.ref }
+        var argRefs: [LLVMGenericValueRef?] = args.map(\.ref)
         let result = argRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMRunFunction(ref, function.ref, UInt32(args.count), buffer.baseAddress)
         }
@@ -91,7 +91,7 @@ public final class ExecutionEngine {
     }
 
     public func findFunction(_ name: String) -> Function? {
-        var outFn: LLVMValueRef? = nil
+        var outFn: LLVMValueRef?
         let result = name.withCString { namePtr -> Int32 in
             LLVMFindFunction(ref, namePtr, &outFn)
         }
@@ -137,7 +137,7 @@ public final class ExecutionEngine {
     }
 
     public var lastErrorMessage: String? {
-        var errMsg: UnsafeMutablePointer<CChar>? = nil
+        var errMsg: UnsafeMutablePointer<CChar>?
         let result = LLVMExecutionEngineGetErrMsg(ref, &errMsg)
         guard result != 0, let errMsg else { return nil }
         return String(cString: errMsg)

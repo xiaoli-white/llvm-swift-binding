@@ -6,13 +6,13 @@ public final class LLJIT {
     public init() throws {
         TargetMachine.initializeAllTargets()
         let builder = LLVMOrcCreateLLJITBuilder()
-        var jit: LLVMOrcLLJITRef? = nil
+        var jit: LLVMOrcLLJITRef?
         let err = LLVMOrcCreateLLJIT(&jit, builder)
         if err != nil {
             let msg = errorMessage(from: err!)
             throw LLVMError.emitFailed(message: "failed to create LLJIT: \(msg)")
         }
-        self.ref = jit!
+        ref = jit!
     }
 
     deinit {

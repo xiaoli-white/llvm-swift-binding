@@ -12,76 +12,75 @@ public struct OperandBundle {
 
 public class Instruction: Value {
     public static func wrap(_ ref: LLVMValueRef, context: Context, module: Module?) -> Instruction {
-        let inst: Instruction
-        switch LLVMGetInstructionOpcode(ref) {
+        let inst: Instruction = switch LLVMGetInstructionOpcode(ref) {
         case LLVMRet:
-            inst = ReturnInst(ref: ref, context: context, module: module)
+            ReturnInst(ref: ref, context: context, module: module)
         case LLVMBr:
-            inst = BranchInst(ref: ref, context: context, module: module)
+            BranchInst(ref: ref, context: context, module: module)
         case LLVMSwitch:
-            inst = SwitchInst(ref: ref, context: context, module: module)
+            SwitchInst(ref: ref, context: context, module: module)
         case LLVMIndirectBr:
-            inst = IndirectBrInst(ref: ref, context: context, module: module)
+            IndirectBrInst(ref: ref, context: context, module: module)
         case LLVMInvoke:
-            inst = InvokeInst(ref: ref, context: context, module: module)
+            InvokeInst(ref: ref, context: context, module: module)
         case LLVMUnreachable:
-            inst = UnreachableInst(ref: ref, context: context, module: module)
+            UnreachableInst(ref: ref, context: context, module: module)
         case LLVMAlloca:
-            inst = AllocaInst(ref: ref, context: context, module: module)
+            AllocaInst(ref: ref, context: context, module: module)
         case LLVMLoad:
-            inst = LoadInst(ref: ref, context: context, module: module)
+            LoadInst(ref: ref, context: context, module: module)
         case LLVMStore:
-            inst = StoreInst(ref: ref, context: context, module: module)
+            StoreInst(ref: ref, context: context, module: module)
         case LLVMGetElementPtr:
-            inst = GetElementPtrInst(ref: ref, context: context, module: module)
+            GetElementPtrInst(ref: ref, context: context, module: module)
         case LLVMICmp:
-            inst = ICmpInst(ref: ref, context: context, module: module)
+            ICmpInst(ref: ref, context: context, module: module)
         case LLVMFCmp:
-            inst = FCmpInst(ref: ref, context: context, module: module)
+            FCmpInst(ref: ref, context: context, module: module)
         case LLVMCall:
-            inst = CallInst(ref: ref, context: context, module: module)
+            CallInst(ref: ref, context: context, module: module)
         case LLVMCallBr:
-            inst = CallBrInst(ref: ref, context: context, module: module)
+            CallBrInst(ref: ref, context: context, module: module)
         case LLVMPHI:
-            inst = PHINode(ref: ref, context: context, module: module)
+            PHINode(ref: ref, context: context, module: module)
         case LLVMSelect:
-            inst = SelectInst(ref: ref, context: context, module: module)
+            SelectInst(ref: ref, context: context, module: module)
         case LLVMVAArg:
-            inst = VAArgInst(ref: ref, context: context, module: module)
+            VAArgInst(ref: ref, context: context, module: module)
         case LLVMExtractElement:
-            inst = ExtractElementInst(ref: ref, context: context, module: module)
+            ExtractElementInst(ref: ref, context: context, module: module)
         case LLVMInsertElement:
-            inst = InsertElementInst(ref: ref, context: context, module: module)
+            InsertElementInst(ref: ref, context: context, module: module)
         case LLVMShuffleVector:
-            inst = ShuffleVectorInst(ref: ref, context: context, module: module)
+            ShuffleVectorInst(ref: ref, context: context, module: module)
         case LLVMExtractValue:
-            inst = ExtractValueInst(ref: ref, context: context, module: module)
+            ExtractValueInst(ref: ref, context: context, module: module)
         case LLVMInsertValue:
-            inst = InsertValueInst(ref: ref, context: context, module: module)
+            InsertValueInst(ref: ref, context: context, module: module)
         case LLVMFreeze:
-            inst = FreezeInst(ref: ref, context: context, module: module)
+            FreezeInst(ref: ref, context: context, module: module)
         case LLVMFence:
-            inst = FenceInst(ref: ref, context: context, module: module)
+            FenceInst(ref: ref, context: context, module: module)
         case LLVMAtomicCmpXchg:
-            inst = AtomicCmpXchgInst(ref: ref, context: context, module: module)
+            AtomicCmpXchgInst(ref: ref, context: context, module: module)
         case LLVMAtomicRMW:
-            inst = AtomicRMWInst(ref: ref, context: context, module: module)
+            AtomicRMWInst(ref: ref, context: context, module: module)
         case LLVMResume:
-            inst = ResumeInst(ref: ref, context: context, module: module)
+            ResumeInst(ref: ref, context: context, module: module)
         case LLVMLandingPad:
-            inst = LandingPadInst(ref: ref, context: context, module: module)
+            LandingPadInst(ref: ref, context: context, module: module)
         case LLVMCleanupRet:
-            inst = CleanupRetInst(ref: ref, context: context, module: module)
+            CleanupRetInst(ref: ref, context: context, module: module)
         case LLVMCatchRet:
-            inst = CatchRetInst(ref: ref, context: context, module: module)
+            CatchRetInst(ref: ref, context: context, module: module)
         case LLVMCatchPad:
-            inst = CatchPadInst(ref: ref, context: context, module: module)
+            CatchPadInst(ref: ref, context: context, module: module)
         case LLVMCleanupPad:
-            inst = CleanupPadInst(ref: ref, context: context, module: module)
+            CleanupPadInst(ref: ref, context: context, module: module)
         case LLVMCatchSwitch:
-            inst = CatchSwitchInst(ref: ref, context: context, module: module)
+            CatchSwitchInst(ref: ref, context: context, module: module)
         default:
-            inst = BinaryOperator(ref: ref, context: context, module: module)
+            BinaryOperator(ref: ref, context: context, module: module)
         }
         return inst
     }
@@ -92,62 +91,62 @@ public class Instruction: Value {
 
     public var opcodeName: String {
         switch opcode {
-        case LLVMRet: return "ret"
-        case LLVMBr: return "br"
-        case LLVMSwitch: return "switch"
-        case LLVMIndirectBr: return "indirectbr"
-        case LLVMInvoke: return "invoke"
-        case LLVMUnreachable: return "unreachable"
-        case LLVMAlloca: return "alloca"
-        case LLVMLoad: return "load"
-        case LLVMStore: return "store"
-        case LLVMGetElementPtr: return "getelementptr"
-        case LLVMICmp: return "icmp"
-        case LLVMFCmp: return "fcmp"
-        case LLVMCall: return "call"
-        case LLVMCallBr: return "callbr"
-        case LLVMPHI: return "phi"
-        case LLVMSelect: return "select"
-        case LLVMAdd: return "add"
-        case LLVMSub: return "sub"
-        case LLVMMul: return "mul"
-        case LLVMUDiv: return "udiv"
-        case LLVMSDiv: return "sdiv"
-        case LLVMURem: return "urem"
-        case LLVMSRem: return "srem"
-        case LLVMShl: return "shl"
-        case LLVMLShr: return "lshr"
-        case LLVMAShr: return "ashr"
-        case LLVMAnd: return "and"
-        case LLVMOr: return "or"
-        case LLVMXor: return "xor"
-        case LLVMFAdd: return "fadd"
-        case LLVMFSub: return "fsub"
-        case LLVMFMul: return "fmul"
-        case LLVMFDiv: return "fdiv"
-        case LLVMFRem: return "frem"
-        case LLVMFNeg: return "fneg"
-        case LLVMTrunc: return "trunc"
-        case LLVMZExt: return "zext"
-        case LLVMSExt: return "sext"
-        case LLVMFPToUI: return "fptoui"
-        case LLVMFPToSI: return "fptosi"
-        case LLVMUIToFP: return "uitofp"
-        case LLVMSIToFP: return "sitofp"
-        case LLVMFPTrunc: return "fptrunc"
-        case LLVMFPExt: return "fpext"
-        case LLVMPtrToInt: return "ptrtoint"
-        case LLVMIntToPtr: return "inttoptr"
-        case LLVMBitCast: return "bitcast"
-        case LLVMAddrSpaceCast: return "addrspacecast"
-        case LLVMExtractElement: return "extractelement"
-        case LLVMInsertElement: return "insertelement"
-        case LLVMShuffleVector: return "shufflevector"
-        case LLVMExtractValue: return "extractvalue"
-        case LLVMInsertValue: return "insertvalue"
-        case LLVMFreeze: return "freeze"
-        case LLVMLandingPad: return "landingpad"
-        default: return "unknown"
+        case LLVMRet: "ret"
+        case LLVMBr: "br"
+        case LLVMSwitch: "switch"
+        case LLVMIndirectBr: "indirectbr"
+        case LLVMInvoke: "invoke"
+        case LLVMUnreachable: "unreachable"
+        case LLVMAlloca: "alloca"
+        case LLVMLoad: "load"
+        case LLVMStore: "store"
+        case LLVMGetElementPtr: "getelementptr"
+        case LLVMICmp: "icmp"
+        case LLVMFCmp: "fcmp"
+        case LLVMCall: "call"
+        case LLVMCallBr: "callbr"
+        case LLVMPHI: "phi"
+        case LLVMSelect: "select"
+        case LLVMAdd: "add"
+        case LLVMSub: "sub"
+        case LLVMMul: "mul"
+        case LLVMUDiv: "udiv"
+        case LLVMSDiv: "sdiv"
+        case LLVMURem: "urem"
+        case LLVMSRem: "srem"
+        case LLVMShl: "shl"
+        case LLVMLShr: "lshr"
+        case LLVMAShr: "ashr"
+        case LLVMAnd: "and"
+        case LLVMOr: "or"
+        case LLVMXor: "xor"
+        case LLVMFAdd: "fadd"
+        case LLVMFSub: "fsub"
+        case LLVMFMul: "fmul"
+        case LLVMFDiv: "fdiv"
+        case LLVMFRem: "frem"
+        case LLVMFNeg: "fneg"
+        case LLVMTrunc: "trunc"
+        case LLVMZExt: "zext"
+        case LLVMSExt: "sext"
+        case LLVMFPToUI: "fptoui"
+        case LLVMFPToSI: "fptosi"
+        case LLVMUIToFP: "uitofp"
+        case LLVMSIToFP: "sitofp"
+        case LLVMFPTrunc: "fptrunc"
+        case LLVMFPExt: "fpext"
+        case LLVMPtrToInt: "ptrtoint"
+        case LLVMIntToPtr: "inttoptr"
+        case LLVMBitCast: "bitcast"
+        case LLVMAddrSpaceCast: "addrspacecast"
+        case LLVMExtractElement: "extractelement"
+        case LLVMInsertElement: "insertelement"
+        case LLVMShuffleVector: "shufflevector"
+        case LLVMExtractValue: "extractvalue"
+        case LLVMInsertValue: "insertvalue"
+        case LLVMFreeze: "freeze"
+        case LLVMLandingPad: "landingpad"
+        default: "unknown"
         }
     }
 
@@ -157,14 +156,14 @@ public class Instruction: Value {
         let count = LLVMGetNumOperandBundles(ref)
         guard count > 0 else { return [] }
         var result: [OperandBundle] = []
-        for i in 0..<count {
+        for i in 0 ..< count {
             let bundleRef = LLVMGetOperandBundleAtIndex(ref, i)
             defer { LLVMDisposeOperandBundle(bundleRef) }
-            var tagLength: Int = 0
+            var tagLength = 0
             let tag = String(cString: LLVMGetOperandBundleTag(bundleRef, &tagLength))
             let argCount = LLVMGetNumOperandBundleArgs(bundleRef)
             var args: [Value] = []
-            for j in 0..<argCount {
+            for j in 0 ..< argCount {
                 args.append(Value(ref: LLVMGetOperandBundleArgAtIndex(bundleRef, j)!, context: context, module: module))
             }
             result.append(OperandBundle(tag: tag, args: args))
@@ -332,8 +331,8 @@ public final class PHINode: Instruction {
 
     public func addIncoming(_ values: [(value: Value, block: BasicBlock)]) {
         let count = UInt32(values.count)
-        var vals: [LLVMValueRef?] = values.map { $0.value.ref }
-        var blks: [LLVMBasicBlockRef?] = values.map { $0.block.ref }
+        var vals: [LLVMValueRef?] = values.map(\.value.ref)
+        var blks: [LLVMBasicBlockRef?] = values.map(\.block.ref)
         vals.withUnsafeMutableBufferPointer { valBuf in
             blks.withUnsafeMutableBufferPointer { blkBuf in
                 LLVMAddIncoming(ref, valBuf.baseAddress, blkBuf.baseAddress, count)

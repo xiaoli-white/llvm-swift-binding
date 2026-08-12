@@ -9,7 +9,7 @@ public final class DataLayout {
             LLVMCreateTargetData(stringPtr)
         }
         self.ref = ref!
-        self.owns = true
+        owns = true
     }
 
     public init(ref: LLVMTargetDataRef, owns: Bool) {
@@ -86,8 +86,8 @@ public final class DataLayout {
     }
 }
 
-extension Module {
-    public var dataLayout: DataLayout {
+public extension Module {
+    var dataLayout: DataLayout {
         get {
             DataLayout(ref: LLVMGetModuleDataLayout(ref), owns: false)
         }
@@ -97,8 +97,8 @@ extension Module {
     }
 }
 
-extension TargetMachine {
-    public var dataLayout: DataLayout {
+public extension TargetMachine {
+    var dataLayout: DataLayout {
         DataLayout(ref: LLVMCreateTargetDataLayout(ref), owns: true)
     }
 }

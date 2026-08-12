@@ -1,0 +1,4 @@
+--swiftversion 6.3
+--modifierorder "open,public,fileprivate,private,internal,override"
+--disable unusedArguments
+--maxwidth 120

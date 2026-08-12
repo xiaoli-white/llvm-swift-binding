@@ -4,11 +4,11 @@ public final class PassManager {
     public let ref: LLVMPassManagerRef
 
     public init() {
-        self.ref = LLVMCreatePassManager()
+        ref = LLVMCreatePassManager()
     }
 
     public init(module: Module) {
-        self.ref = LLVMCreateFunctionPassManagerForModule(module.ref)
+        ref = LLVMCreateFunctionPassManagerForModule(module.ref)
     }
 
     deinit {
@@ -39,7 +39,12 @@ public final class PassManager {
         LLVMFinalizeFunctionPassManager(ref) != 0
     }
 
-    public func runPasses(_ passes: String, on module: Module, targetMachine: TargetMachine? = nil, options: PassBuilderOptions? = nil) throws {
+    public func runPasses(
+        _ passes: String,
+        on module: Module,
+        targetMachine: TargetMachine? = nil,
+        options: PassBuilderOptions? = nil
+    ) throws {
         let errorRef = passes.withCString { passPtr in
             LLVMRunPasses(module.ref, passPtr, targetMachine?.ref, options?.ref)
         }
@@ -51,7 +56,12 @@ public final class PassManager {
         }
     }
 
-    public func runPassesOnFunction(_ passes: String, function: Function, targetMachine: TargetMachine? = nil, options: PassBuilderOptions? = nil) throws {
+    public func runPassesOnFunction(
+        _ passes: String,
+        function: Function,
+        targetMachine: TargetMachine? = nil,
+        options: PassBuilderOptions? = nil
+    ) throws {
         let errorRef = passes.withCString { passPtr in
             LLVMRunPassesOnFunction(function.ref, passPtr, targetMachine?.ref, options?.ref)
         }
@@ -68,7 +78,7 @@ public final class PassBuilderOptions {
     public let ref: LLVMPassBuilderOptionsRef
 
     public init() {
-        self.ref = LLVMCreatePassBuilderOptions()
+        ref = LLVMCreatePassBuilderOptions()
     }
 
     deinit {

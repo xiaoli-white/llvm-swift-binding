@@ -6,7 +6,7 @@ public final class Context {
     private var constantCache: [OpaquePointer: Constant] = [:]
 
     public init() {
-        self.ref = LLVMContextCreate()
+        ref = LLVMContextCreate()
     }
 
     deinit {
@@ -37,7 +37,7 @@ public final class Context {
     }
 
     public func functionType(returnType: Type, parameterTypes: [Type] = [], isVariadic: Bool = false) -> FunctionType {
-        var params: [LLVMTypeRef?] = parameterTypes.map { $0.ref }
+        var params: [LLVMTypeRef?] = parameterTypes.map(\.ref)
         let ref = params.withUnsafeMutableBufferPointer { buffer in
             LLVMFunctionType(returnType.ref, buffer.baseAddress, UInt32(parameterTypes.count), isVariadic ? 1 : 0)
         }
@@ -60,7 +60,7 @@ public final class Context {
     }
 
     public func pointerType(addressSpace: UInt32 = 0) -> PointerType {
-        let ref = LLVMPointerTypeInContext(self.ref, addressSpace)
+        let ref = LLVMPointerTypeInContext(ref, addressSpace)
         return wrapType(ref!) as! PointerType
     }
 
@@ -149,7 +149,7 @@ public final class Context {
     }
 
     public func constantArray(_ values: [Constant], elementType: Type) -> ConstantArray {
-        var valRefs: [LLVMValueRef?] = values.map { $0.ref }
+        var valRefs: [LLVMValueRef?] = values.map(\.ref)
         let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMConstArray2(elementType.ref, buffer.baseAddress, UInt64(values.count))
         }
@@ -165,7 +165,7 @@ public final class Context {
     }
 
     public func constantVector(_ values: [Constant]) -> ConstantVector {
-        var valRefs: [LLVMValueRef?] = values.map { $0.ref }
+        var valRefs: [LLVMValueRef?] = values.map(\.ref)
         let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMConstVector(buffer.baseAddress, UInt32(values.count))
         }
@@ -218,7 +218,7 @@ public final class Context {
     }
 
     public func constantGEP(_ elementType: Type, _ value: Constant, indices: [Constant]) -> Constant {
-        var idxRefs: [LLVMValueRef?] = indices.map { $0.ref }
+        var idxRefs: [LLVMValueRef?] = indices.map(\.ref)
         let ref = idxRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMConstGEP2(elementType.ref, value.ref, buffer.baseAddress, UInt32(indices.count))
         }
@@ -249,10 +249,28 @@ public final class Context {
         wrapConstant(LLVMConstShuffleVector(v1.ref, v2.ref, mask.ref)!)
     }
 
-    public func constantInlineAsm(_ type: Type, asmString: String, constraints: String, hasSideEffects: Bool, isAlignStack: Bool, dialect: LLVMInlineAsmDialect = LLVMInlineAsmDialectATT, canThrow: Bool = false) -> Value {
+    public func constantInlineAsm(
+        _ type: Type,
+        asmString: String,
+        constraints: String,
+        hasSideEffects: Bool,
+        isAlignStack: Bool,
+        dialect: LLVMInlineAsmDialect = LLVMInlineAsmDialectATT,
+        canThrow: Bool = false
+    ) -> Value {
         let ref = asmString.withCString { asmPtr in
             constraints.withCString { cPtr in
-                LLVMGetInlineAsm(type.ref, asmPtr, asmString.utf8.count, cPtr, constraints.utf8.count, hasSideEffects ? 1 : 0, isAlignStack ? 1 : 0, dialect, canThrow ? 1 : 0)
+                LLVMGetInlineAsm(
+                    type.ref,
+                    asmPtr,
+                    asmString.utf8.count,
+                    cPtr,
+                    constraints.utf8.count,
+                    hasSideEffects ? 1 : 0,
+                    isAlignStack ? 1 : 0,
+                    dialect,
+                    canThrow ? 1 : 0
+                )
             }
         }
         return Value(ref: ref!, context: self)
@@ -264,7 +282,7 @@ public final class Context {
     }
 
     public func constantStruct(_ values: [Constant], isPacked: Bool = false) -> ConstantStruct {
-        var valRefs: [LLVMValueRef?] = values.map { $0.ref }
+        var valRefs: [LLVMValueRef?] = values.map(\.ref)
         let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMConstStructInContext(self.ref, buffer.baseAddress, UInt32(values.count), isPacked ? 1 : 0)
         }
@@ -272,7 +290,7 @@ public final class Context {
     }
 
     public func structType(elementTypes: [Type], isPacked: Bool = false) -> StructType {
-        var members: [LLVMTypeRef?] = elementTypes.map { $0.ref }
+        var members: [LLVMTypeRef?] = elementTypes.map(\.ref)
         let ref = members.withUnsafeMutableBufferPointer { buffer in
             LLVMStructTypeInContext(self.ref, buffer.baseAddress, UInt32(elementTypes.count), isPacked ? 1 : 0)
         }
@@ -280,10 +298,10 @@ public final class Context {
     }
 
     public func namedStructType(name: String, elementTypes: [Type]? = nil, isPacked: Bool = false) -> StructType {
-        let ref = LLVMStructCreateNamed(self.ref, name)
+        let ref = LLVMStructCreateNamed(ref, name)
         let type = wrapType(ref!) as! StructType
         if let elementTypes {
-            var members: [LLVMTypeRef?] = elementTypes.map { $0.ref }
+            var members: [LLVMTypeRef?] = elementTypes.map(\.ref)
             members.withUnsafeMutableBufferPointer { buffer in
                 LLVMStructSetBody(ref, buffer.baseAddress, UInt32(elementTypes.count), isPacked ? 1 : 0)
             }
@@ -307,17 +325,24 @@ public final class Context {
     }
 
     public func targetExtType(name: String, typeParams: [Type] = [], intParams: [UInt32] = []) -> TargetExtType {
-        var typeRefs: [LLVMTypeRef?] = typeParams.map { $0.ref }
+        var typeRefs: [LLVMTypeRef?] = typeParams.map(\.ref)
         let ref = typeRefs.withUnsafeMutableBufferPointer { typeBuf in
             intParams.withUnsafeBufferPointer { intBuf in
-                LLVMTargetExtTypeInContext(self.ref, name, typeBuf.baseAddress, UInt32(typeParams.count), UnsafeMutablePointer(mutating: intBuf.baseAddress), UInt32(intParams.count))
+                LLVMTargetExtTypeInContext(
+                    self.ref,
+                    name,
+                    typeBuf.baseAddress,
+                    UInt32(typeParams.count),
+                    UnsafeMutablePointer(mutating: intBuf.baseAddress),
+                    UInt32(intParams.count)
+                )
             }
         }
         return wrapType(ref!) as! TargetExtType
     }
 
     public func mdNode(_ elements: [Metadata]) -> Metadata {
-        var elems: [LLVMMetadataRef?] = elements.map { $0.ref }
+        var elems: [LLVMMetadataRef?] = elements.map(\.ref)
         let ref = elems.withUnsafeMutableBufferPointer { buffer in
             LLVMMDNodeInContext2(self.ref, buffer.baseAddress, buffer.count)
         }
@@ -332,7 +357,7 @@ public final class Context {
     }
 
     public func metadataAsValue(_ metadata: Metadata) -> Value {
-        Value(ref: LLVMMetadataAsValue(self.ref, metadata.ref), context: self)
+        Value(ref: LLVMMetadataAsValue(ref, metadata.ref), context: self)
     }
 
     public func wrapType(_ ref: LLVMTypeRef) -> Type {
@@ -340,36 +365,35 @@ public final class Context {
             return cached
         }
         let kind = LLVMGetTypeKind(ref)
-        let type: Type
-        switch kind {
+        let type: Type = switch kind {
         case LLVMVoidTypeKind:
-            type = VoidType(ref: ref, context: self)
+            VoidType(ref: ref, context: self)
         case LLVMHalfTypeKind, LLVMFloatTypeKind, LLVMDoubleTypeKind,
              LLVMX86_FP80TypeKind, LLVMFP128TypeKind, LLVMPPC_FP128TypeKind,
              LLVMBFloatTypeKind:
-            type = FloatType(ref: ref, context: self)
+            FloatType(ref: ref, context: self)
         case LLVMIntegerTypeKind:
-            type = IntegerType(ref: ref, context: self)
+            IntegerType(ref: ref, context: self)
         case LLVMFunctionTypeKind:
-            type = FunctionType(ref: ref, context: self)
+            FunctionType(ref: ref, context: self)
         case LLVMStructTypeKind:
-            type = StructType(ref: ref, context: self)
+            StructType(ref: ref, context: self)
         case LLVMArrayTypeKind:
-            type = ArrayType(ref: ref, context: self)
+            ArrayType(ref: ref, context: self)
         case LLVMPointerTypeKind:
-            type = PointerType(ref: ref, context: self)
+            PointerType(ref: ref, context: self)
         case LLVMVectorTypeKind, LLVMScalableVectorTypeKind:
-            type = VectorType(ref: ref, context: self)
+            VectorType(ref: ref, context: self)
         case LLVMLabelTypeKind:
-            type = LabelType(ref: ref, context: self)
+            LabelType(ref: ref, context: self)
         case LLVMTokenTypeKind:
-            type = TokenType(ref: ref, context: self)
+            TokenType(ref: ref, context: self)
         case LLVMMetadataTypeKind:
-            type = MetadataType(ref: ref, context: self)
+            MetadataType(ref: ref, context: self)
         case LLVMTargetExtTypeKind:
-            type = TargetExtType(ref: ref, context: self)
+            TargetExtType(ref: ref, context: self)
         default:
-            type = Type(ref: ref, context: self)
+            Type(ref: ref, context: self)
         }
         typeCache[ref] = type
         return type
@@ -379,29 +403,28 @@ public final class Context {
         if let cached = constantCache[ref] {
             return cached
         }
-        let constant: Constant
-        if LLVMIsAConstantInt(ref) != nil {
-            constant = ConstantInt(ref: ref, context: self)
+        let constant: Constant = if LLVMIsAConstantInt(ref) != nil {
+            ConstantInt(ref: ref, context: self)
         } else if LLVMIsAConstantFP(ref) != nil {
-            constant = ConstantFP(ref: ref, context: self)
+            ConstantFP(ref: ref, context: self)
         } else if LLVMIsAUndefValue(ref) != nil {
-            constant = UndefValue(ref: ref, context: self)
+            UndefValue(ref: ref, context: self)
         } else if LLVMIsAPoisonValue(ref) != nil {
-            constant = PoisonValue(ref: ref, context: self)
+            PoisonValue(ref: ref, context: self)
         } else if LLVMIsAConstantTokenNone(ref) != nil {
-            constant = ConstantTokenNone(ref: ref, context: self)
+            ConstantTokenNone(ref: ref, context: self)
         } else if LLVMIsAConstantAggregateZero(ref) != nil {
-            constant = ConstantAggregateZero(ref: ref, context: self)
+            ConstantAggregateZero(ref: ref, context: self)
         } else if LLVMIsAConstantDataArray(ref) != nil {
-            constant = ConstantDataArray(ref: ref, context: self)
+            ConstantDataArray(ref: ref, context: self)
         } else if LLVMIsAConstantExpr(ref) != nil {
-            constant = ConstantExpr(ref: ref, context: self)
+            ConstantExpr(ref: ref, context: self)
         } else if LLVMIsAConstantVector(ref) != nil {
-            constant = ConstantVector(ref: ref, context: self)
+            ConstantVector(ref: ref, context: self)
         } else if LLVMIsABlockAddress(ref) != nil {
-            constant = BlockAddress(ref: ref, context: self)
+            BlockAddress(ref: ref, context: self)
         } else {
-            constant = Constant(ref: ref, context: self)
+            Constant(ref: ref, context: self)
         }
         constantCache[ref] = constant
         return constant

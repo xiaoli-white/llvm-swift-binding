@@ -21,14 +21,14 @@ public class Value {
     }
 
     public var nameWithLength: String {
-        var length: Int = 0
+        var length = 0
         guard let ptr = LLVMGetValueName2(ref, &length) else { return "" }
         let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
         return String(decoding: bytes, as: UTF8.self)
     }
 
     public var shortName: String {
-        var length: Int = 0
+        var length = 0
         guard let ptr = LLVMGetValueName2(ref, &length) else { return "" }
         let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
         let name = String(decoding: bytes, as: UTF8.self)
@@ -81,34 +81,34 @@ public class Value {
 
     public var kindName: String {
         switch valueKind {
-        case LLVMArgumentValueKind: return "argument"
-        case LLVMBasicBlockValueKind: return "basic-block"
-        case LLVMMemoryUseValueKind: return "memory-use"
-        case LLVMMemoryDefValueKind: return "memory-def"
-        case LLVMMemoryPhiValueKind: return "memory-phi"
-        case LLVMFunctionValueKind: return "function"
-        case LLVMGlobalAliasValueKind: return "global-alias"
-        case LLVMGlobalIFuncValueKind: return "global-ifunc"
-        case LLVMGlobalVariableValueKind: return "global-variable"
-        case LLVMBlockAddressValueKind: return "block-address"
-        case LLVMConstantExprValueKind: return "constant-expr"
-        case LLVMConstantArrayValueKind: return "constant-array"
-        case LLVMConstantStructValueKind: return "constant-struct"
-        case LLVMConstantVectorValueKind: return "constant-vector"
-        case LLVMUndefValueValueKind: return "undef"
-        case LLVMConstantAggregateZeroValueKind: return "constant-aggregate-zero"
-        case LLVMConstantDataArrayValueKind: return "constant-data-array"
-        case LLVMConstantDataVectorValueKind: return "constant-data-vector"
-        case LLVMConstantIntValueKind: return "constant-int"
-        case LLVMConstantFPValueKind: return "constant-fp"
-        case LLVMConstantPointerNullValueKind: return "constant-pointer-null"
-        case LLVMConstantTokenNoneValueKind: return "constant-token-none"
-        case LLVMMetadataAsValueValueKind: return "metadata-as-value"
-        case LLVMInlineAsmValueKind: return "inline-asm"
-        case LLVMInstructionValueKind: return "instruction"
-        case LLVMPoisonValueValueKind: return "poison"
-        case LLVMConstantTargetNoneValueKind: return "constant-target-none"
-        default: return "unknown"
+        case LLVMArgumentValueKind: "argument"
+        case LLVMBasicBlockValueKind: "basic-block"
+        case LLVMMemoryUseValueKind: "memory-use"
+        case LLVMMemoryDefValueKind: "memory-def"
+        case LLVMMemoryPhiValueKind: "memory-phi"
+        case LLVMFunctionValueKind: "function"
+        case LLVMGlobalAliasValueKind: "global-alias"
+        case LLVMGlobalIFuncValueKind: "global-ifunc"
+        case LLVMGlobalVariableValueKind: "global-variable"
+        case LLVMBlockAddressValueKind: "block-address"
+        case LLVMConstantExprValueKind: "constant-expr"
+        case LLVMConstantArrayValueKind: "constant-array"
+        case LLVMConstantStructValueKind: "constant-struct"
+        case LLVMConstantVectorValueKind: "constant-vector"
+        case LLVMUndefValueValueKind: "undef"
+        case LLVMConstantAggregateZeroValueKind: "constant-aggregate-zero"
+        case LLVMConstantDataArrayValueKind: "constant-data-array"
+        case LLVMConstantDataVectorValueKind: "constant-data-vector"
+        case LLVMConstantIntValueKind: "constant-int"
+        case LLVMConstantFPValueKind: "constant-fp"
+        case LLVMConstantPointerNullValueKind: "constant-pointer-null"
+        case LLVMConstantTokenNoneValueKind: "constant-token-none"
+        case LLVMMetadataAsValueValueKind: "metadata-as-value"
+        case LLVMInlineAsmValueKind: "inline-asm"
+        case LLVMInstructionValueKind: "instruction"
+        case LLVMPoisonValueValueKind: "poison"
+        case LLVMConstantTargetNoneValueKind: "constant-target-none"
+        default: "unknown"
         }
     }
 

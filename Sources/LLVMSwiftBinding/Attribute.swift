@@ -81,22 +81,22 @@ public enum AttributeIndex {
     }
 }
 
-extension Value {
-    public func addAttribute(_ attribute: Attribute, at index: LLVMAttributeIndex) {
+public extension Value {
+    func addAttribute(_ attribute: Attribute, at index: LLVMAttributeIndex) {
         LLVMAddAttributeAtIndex(ref, index, attribute.ref)
     }
 
-    public func removeEnumAttribute(kind: UInt32, at index: LLVMAttributeIndex) {
+    func removeEnumAttribute(kind: UInt32, at index: LLVMAttributeIndex) {
         LLVMRemoveEnumAttributeAtIndex(ref, index, kind)
     }
 
-    public func removeStringAttribute(kind: String, at index: LLVMAttributeIndex) {
+    func removeStringAttribute(kind: String, at index: LLVMAttributeIndex) {
         kind.withCString { kindPtr in
             LLVMRemoveStringAttributeAtIndex(ref, index, kindPtr, UInt32(kind.utf8.count))
         }
     }
 
-    public func attributes(at index: LLVMAttributeIndex) -> [Attribute] {
+    func attributes(at index: LLVMAttributeIndex) -> [Attribute] {
         let count = LLVMGetAttributeCountAtIndex(ref, index)
         guard count > 0 else { return [] }
         var attrs = [LLVMAttributeRef?](repeating: nil, count: Int(count))
@@ -107,16 +107,16 @@ extension Value {
     }
 }
 
-extension CallInst {
-    public func addCallSiteAttribute(_ attribute: Attribute, at index: LLVMAttributeIndex) {
+public extension CallInst {
+    func addCallSiteAttribute(_ attribute: Attribute, at index: LLVMAttributeIndex) {
         LLVMAddCallSiteAttribute(ref, index, attribute.ref)
     }
 
-    public func removeCallSiteEnumAttribute(kind: UInt32, at index: LLVMAttributeIndex) {
+    func removeCallSiteEnumAttribute(kind: UInt32, at index: LLVMAttributeIndex) {
         LLVMRemoveCallSiteEnumAttribute(ref, index, kind)
     }
 
-    public func callSiteAttributes(at index: LLVMAttributeIndex) -> [Attribute] {
+    func callSiteAttributes(at index: LLVMAttributeIndex) -> [Attribute] {
         let count = LLVMGetCallSiteAttributeCount(ref, index)
         guard count > 0 else { return [] }
         var attrs = [LLVMAttributeRef?](repeating: nil, count: Int(count))
