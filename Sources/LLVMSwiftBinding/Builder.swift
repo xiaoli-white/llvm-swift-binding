@@ -218,13 +218,13 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildAlloca(_ type: Type, name: String = "") -> AllocaInst {
+    public func buildAlloca(_ type: LLVMType, name: String = "") -> AllocaInst {
         let inst = LLVMBuildAlloca(ref, type.ref, name)!
         return AllocaInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildLoad(_ type: Type, _ ptr: Value, name: String = "") -> LoadInst {
+    public func buildLoad(_ type: LLVMType, _ ptr: Value, name: String = "") -> LoadInst {
         let inst = LLVMBuildLoad2(ref, type.ref, ptr.ref, name)!
         return LoadInst(ref: inst, context: context, module: currentModule)
     }
@@ -270,7 +270,7 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildPhi(_ type: Type, name: String = "") -> PHINode {
+    public func buildPhi(_ type: LLVMType, name: String = "") -> PHINode {
         let inst = LLVMBuildPhi(ref, type.ref, name)!
         return PHINode(ref: inst, context: context, module: currentModule)
     }
@@ -282,7 +282,9 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildGEP(_ elementType: Type, _ ptr: Value, indices: [Value], name: String = "") -> GetElementPtrInst {
+    public func buildGEP(_ elementType: LLVMType, _ ptr: Value, indices: [Value],
+                         name: String = "") -> GetElementPtrInst
+    {
         var idxRefs: [LLVMValueRef?] = indices.map(\.ref)
         let inst = idxRefs.withUnsafeMutableBufferPointer { buffer in
             LLVMBuildGEP2(ref, elementType.ref, ptr.ref, buffer.baseAddress, UInt32(indices.count), name)
@@ -291,115 +293,115 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildTrunc(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildTrunc(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildTrunc(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildZExt(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildZExt(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildZExt(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildSExt(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildSExt(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildSExt(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildBitCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildBitCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildPtrToInt(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildPtrToInt(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildPtrToInt(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildIntToPtr(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildIntToPtr(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildIntToPtr(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildFPToUI(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildFPToUI(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildFPToUI(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildFPToSI(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildFPToSI(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildFPToSI(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildUIToFP(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildUIToFP(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildUIToFP(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildSIToFP(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildSIToFP(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildSIToFP(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildFPTrunc(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildFPTrunc(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildFPTrunc(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildFPExt(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildFPExt(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildFPExt(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildAddrSpaceCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildAddrSpaceCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildAddrSpaceCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildZExtOrBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildZExtOrBitCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildZExtOrBitCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildSExtOrBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildSExtOrBitCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildSExtOrBitCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildTruncOrBitCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildTruncOrBitCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildTruncOrBitCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildPointerCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildPointerCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildPointerCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildIntCast(_ value: Value, to type: Type, isSigned: Bool, name: String = "") -> CastInst {
+    public func buildIntCast(_ value: Value, to type: LLVMType, isSigned: Bool, name: String = "") -> CastInst {
         let inst = LLVMBuildIntCast2(ref, value.ref, type.ref, isSigned ? 1 : 0, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildFPCast(_ value: Value, to type: Type, name: String = "") -> CastInst {
+    public func buildFPCast(_ value: Value, to type: LLVMType, name: String = "") -> CastInst {
         let inst = LLVMBuildFPCast(ref, value.ref, type.ref, name)!
         return CastInst(ref: inst, context: context, module: currentModule)
     }
@@ -514,7 +516,7 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildVAArg(_ list: Value, type: Type, name: String = "") -> VAArgInst {
+    public func buildVAArg(_ list: Value, type: LLVMType, name: String = "") -> VAArgInst {
         let inst = LLVMBuildVAArg(ref, list.ref, type.ref, name)!
         return VAArgInst(ref: inst, context: context, module: currentModule)
     }
@@ -526,7 +528,7 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildLandingPad(_ type: Type, personality: Value? = nil, numClauses: UInt32 = 0,
+    public func buildLandingPad(_ type: LLVMType, personality: Value? = nil, numClauses: UInt32 = 0,
                                 name: String = "") -> LandingPadInst
     {
         let inst = LLVMBuildLandingPad(ref, type.ref, personality?.ref, numClauses, name)!
@@ -599,10 +601,10 @@ public final class Builder {
         bundles: [OperandBundle] = [],
         name: String = ""
     ) -> CallBrInst {
-        let calleeType: Type = if LLVMGetValueKind(callee.ref) == LLVMInlineAsmValueKind {
-            Type(ref: LLVMGetInlineAsmFunctionType(callee.ref)!, context: context)
+        let calleeType: LLVMType = if LLVMGetValueKind(callee.ref) == LLVMInlineAsmValueKind {
+            LLVMType(ref: LLVMGetInlineAsmFunctionType(callee.ref)!, context: context)
         } else if let fn = callee as? Function {
-            Type(ref: LLVMGlobalGetValueType(fn.ref)!, context: context)
+            LLVMType(ref: LLVMGlobalGetValueType(fn.ref)!, context: context)
         } else {
             callee.type
         }

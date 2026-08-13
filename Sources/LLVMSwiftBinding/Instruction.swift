@@ -314,7 +314,7 @@ public final class CallInst: Instruction {
         return Value(ref: ref, context: context, module: module)
     }
 
-    public var calledFunctionType: Type? {
+    public var calledFunctionType: LLVMType? {
         guard let ref = LLVMGetCalledFunctionType(ref) else { return nil }
         return context.wrapType(ref)
     }
@@ -363,7 +363,7 @@ public final class CastInst: Instruction {
         operand(at: 0)
     }
 
-    public var destinationType: Type {
+    public var destinationType: LLVMType {
         type
     }
 }

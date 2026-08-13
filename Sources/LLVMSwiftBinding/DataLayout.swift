@@ -41,35 +41,35 @@ public final class DataLayout {
         LLVMPointerSizeForAS(ref, addressSpace)
     }
 
-    public func intPtrType(in context: Context) -> Type {
+    public func intPtrType(in context: Context) -> LLVMType {
         context.wrapType(LLVMIntPtrTypeInContext(context.ref, ref)!)
     }
 
-    public func intPtrType(addressSpace: UInt32, in context: Context) -> Type {
+    public func intPtrType(addressSpace: UInt32, in context: Context) -> LLVMType {
         context.wrapType(LLVMIntPtrTypeForASInContext(context.ref, ref, addressSpace)!)
     }
 
-    public func sizeOfTypeInBits(_ type: Type) -> UInt64 {
+    public func sizeOfTypeInBits(_ type: LLVMType) -> UInt64 {
         LLVMSizeOfTypeInBits(ref, type.ref)
     }
 
-    public func storeSizeOfType(_ type: Type) -> UInt64 {
+    public func storeSizeOfType(_ type: LLVMType) -> UInt64 {
         LLVMStoreSizeOfType(ref, type.ref)
     }
 
-    public func abiSizeOfType(_ type: Type) -> UInt64 {
+    public func abiSizeOfType(_ type: LLVMType) -> UInt64 {
         LLVMABISizeOfType(ref, type.ref)
     }
 
-    public func abiAlignmentOfType(_ type: Type) -> UInt32 {
+    public func abiAlignmentOfType(_ type: LLVMType) -> UInt32 {
         LLVMABIAlignmentOfType(ref, type.ref)
     }
 
-    public func callFrameAlignmentOfType(_ type: Type) -> UInt32 {
+    public func callFrameAlignmentOfType(_ type: LLVMType) -> UInt32 {
         LLVMCallFrameAlignmentOfType(ref, type.ref)
     }
 
-    public func preferredAlignmentOfType(_ type: Type) -> UInt32 {
+    public func preferredAlignmentOfType(_ type: LLVMType) -> UInt32 {
         LLVMPreferredAlignmentOfType(ref, type.ref)
     }
 

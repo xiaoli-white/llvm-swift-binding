@@ -10,7 +10,7 @@ public final class GlobalAlias: Value {
         return Value(ref: ref, context: context, module: module)
     }
 
-    public var aliaseeType: Type {
+    public var aliaseeType: LLVMType {
         context.wrapType(LLVMGlobalGetValueType(ref))
     }
 }

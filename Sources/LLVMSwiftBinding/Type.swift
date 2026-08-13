@@ -1,6 +1,6 @@
 import cLLVM
 
-public class Type {
+public class LLVMType {
     public let ref: LLVMTypeRef
     public let context: Context
 
@@ -67,18 +67,18 @@ public class Type {
     }
 }
 
-public final class VoidType: Type {}
+public final class VoidType: LLVMType {}
 
-public final class IntegerType: Type {
+public final class IntegerType: LLVMType {
     public var width: UInt32 {
         LLVMGetIntTypeWidth(ref)
     }
 }
 
-public final class FloatType: Type {}
+public final class FloatType: LLVMType {}
 
-public final class FunctionType: Type {
-    public var returnType: Type {
+public final class FunctionType: LLVMType {
+    public var returnType: LLVMType {
         context.wrapType(LLVMGetReturnType(ref)!)
     }
 
@@ -86,7 +86,7 @@ public final class FunctionType: Type {
         LLVMCountParamTypes(ref)
     }
 
-    public var parameterTypes: [Type] {
+    public var parameterTypes: [LLVMType] {
         let count = Int(parameterCount)
         guard count > 0 else { return [] }
         var types = [LLVMTypeRef?](repeating: nil, count: count)
@@ -101,8 +101,8 @@ public final class FunctionType: Type {
     }
 }
 
-public final class PointerType: Type {
-    public var elementType: Type {
+public final class PointerType: LLVMType {
+    public var elementType: LLVMType {
         context.wrapType(LLVMGetElementType(ref)!)
     }
 
@@ -111,12 +111,12 @@ public final class PointerType: Type {
     }
 }
 
-public final class StructType: Type {
+public final class StructType: LLVMType {
     public var elementCount: UInt32 {
         LLVMCountStructElementTypes(ref)
     }
 
-    public var elementTypes: [Type] {
+    public var elementTypes: [LLVMType] {
         let count = Int(elementCount)
         guard count > 0 else { return [] }
         var types = [LLVMTypeRef?](repeating: nil, count: count)
@@ -126,7 +126,7 @@ public final class StructType: Type {
         return types.map { context.wrapType($0!) }
     }
 
-    public func elementType(at index: UInt32) -> Type {
+    public func elementType(at index: UInt32) -> LLVMType {
         context.wrapType(LLVMStructGetTypeAtIndex(ref, index)!)
     }
 
@@ -148,8 +148,8 @@ public final class StructType: Type {
     }
 }
 
-public final class ArrayType: Type {
-    public var elementType: Type {
+public final class ArrayType: LLVMType {
+    public var elementType: LLVMType {
         context.wrapType(LLVMGetElementType(ref)!)
     }
 
@@ -158,8 +158,8 @@ public final class ArrayType: Type {
     }
 }
 
-public final class VectorType: Type {
-    public var elementType: Type {
+public final class VectorType: LLVMType {
+    public var elementType: LLVMType {
         context.wrapType(LLVMGetElementType(ref)!)
     }
 
@@ -172,11 +172,11 @@ public final class VectorType: Type {
     }
 }
 
-public final class LabelType: Type {}
-public final class TokenType: Type {}
-public final class MetadataType: Type {}
+public final class LabelType: LLVMType {}
+public final class TokenType: LLVMType {}
+public final class MetadataType: LLVMType {}
 
-public final class TargetExtType: Type {
+public final class TargetExtType: LLVMType {
     public var name: String? {
         guard let ptr = LLVMGetTargetExtTypeName(ref) else { return nil }
         return String(cString: ptr)
@@ -186,7 +186,7 @@ public final class TargetExtType: Type {
         LLVMGetTargetExtTypeNumTypeParams(ref)
     }
 
-    public func typeParameter(at index: UInt32) -> Type {
+    public func typeParameter(at index: UInt32) -> LLVMType {
         context.wrapType(LLVMGetTargetExtTypeTypeParam(ref, index)!)
     }
 

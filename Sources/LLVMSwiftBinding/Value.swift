@@ -11,7 +11,7 @@ public class Value {
         self.module = module
     }
 
-    public var type: Type {
+    public var type: LLVMType {
         context.wrapType(LLVMTypeOf(ref))
     }
 

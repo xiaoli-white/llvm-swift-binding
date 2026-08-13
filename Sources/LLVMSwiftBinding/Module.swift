@@ -68,7 +68,7 @@ public final class Module {
         return result
     }
 
-    public func addAlias(_ name: String, type: Type, aliasee: Value, addressSpace: UInt32 = 0) -> GlobalAlias {
+    public func addAlias(_ name: String, type: LLVMType, aliasee: Value, addressSpace: UInt32 = 0) -> GlobalAlias {
         let ref = LLVMAddAlias2(ref, type.ref, addressSpace, aliasee.ref, name)!
         return GlobalAlias(ref: ref, module: self)
     }
@@ -118,7 +118,7 @@ public final class Module {
         return result
     }
 
-    public func addGlobal(_ name: String, type: Type) -> GlobalVariable {
+    public func addGlobal(_ name: String, type: LLVMType) -> GlobalVariable {
         let ref = LLVMAddGlobal(ref, type.ref, name)!
         return GlobalVariable(ref: ref, module: self)
     }

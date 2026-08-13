@@ -11,7 +11,7 @@ public final class GenericValue {
         LLVMDisposeGenericValue(ref)
     }
 
-    public static func ofInt(_ value: UInt64, type: Type, isSigned: Bool = false) -> GenericValue {
+    public static func ofInt(_ value: UInt64, type: LLVMType, isSigned: Bool = false) -> GenericValue {
         GenericValue(ref: LLVMCreateGenericValueOfInt(type.ref, value, isSigned ? 1 : 0))
     }
 
@@ -19,7 +19,7 @@ public final class GenericValue {
         GenericValue(ref: LLVMCreateGenericValueOfPointer(pointer))
     }
 
-    public static func ofFloat(_ value: Double, type: Type) -> GenericValue {
+    public static func ofFloat(_ value: Double, type: LLVMType) -> GenericValue {
         GenericValue(ref: LLVMCreateGenericValueOfFloat(type.ref, value))
     }
 
@@ -35,7 +35,7 @@ public final class GenericValue {
         LLVMGenericValueToPointer(ref)
     }
 
-    public func toFloat(type: Type) -> Double {
+    public func toFloat(type: LLVMType) -> Double {
         LLVMGenericValueToFloat(type.ref, ref)
     }
 }

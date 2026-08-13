@@ -83,7 +83,7 @@ print(result.toInt(isSigned: true)) // prints 42
 | Function | `Function.swift` | parameters, basic blocks, attributes, gc, linkage, call convention, personality |
 | Value | `Value.swift` | operands, uses, name, type, printing, RAUW |
 | Instruction | `Instruction.swift` | typed subclasses, opcode, operand bundles, debug location, clone/erase |
-| Type | `Type.swift` | kind checks, struct/array/vector/target-ext accessors |
+| LLVMType | `Type.swift` | kind checks, struct/array/vector/target-ext accessors |
 | Constant | `Constant.swift` | data arrays, expressions, vectors, block address, poison/undef |
 | Globals | `GlobalVariable.swift`, `GlobalAlias.swift` | globals, aliases, ifuncs, TLS models, initializers |
 | Debug info | `DIBuilder.swift` | compile units, types, subprograms, locations, declare records |

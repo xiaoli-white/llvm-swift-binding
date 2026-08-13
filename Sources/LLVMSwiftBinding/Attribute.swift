@@ -45,7 +45,7 @@ public final class Attribute {
         return String(decoding: bytes, as: UTF8.self)
     }
 
-    public var typeValue: Type? {
+    public var typeValue: LLVMType? {
         guard isType else { return nil }
         return context.wrapType(LLVMGetTypeAttributeValue(ref)!)
     }
@@ -66,7 +66,7 @@ public final class Attribute {
         return Attribute(ref: ref, context: context)
     }
 
-    public static func typeAttribute(_ kind: UInt32, type: Type, in context: Context) -> Attribute {
+    public static func typeAttribute(_ kind: UInt32, type: LLVMType, in context: Context) -> Attribute {
         let ref = LLVMCreateTypeAttribute(context.ref, kind, type.ref)!
         return Attribute(ref: ref, context: context)
     }
