@@ -117,7 +117,7 @@ docs/
 swift test
 ```
 
-The suite contains 76 tests: 74 pass against LLVM 22.1.8 on Arch Linux; 2 ORC JIT tests are disabled on glibc 2.44 (an LLVM assertion in `tpp.c` on Arch Linux).
+The suite contains 81 tests covering IR construction, codegen, MCJIT and ORC JIT execution, debug info, and more — all passing against LLVM 22.1.8 on Arch Linux (x86_64).
 
 ## Contributing
 

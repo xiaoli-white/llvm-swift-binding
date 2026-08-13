@@ -257,6 +257,49 @@ All instructions in the block, in order.
 
 ## Builder.swift
 
+### GEPNoWrapFlags
+
+```swift
+public struct GEPNoWrapFlags: OptionSet, Sendable
+```
+Flags constraining the wrap semantics of a `getelementptr` instruction. Combine
+members with array literal syntax. `InBounds` implies `NUSW` (raw value `3`).
+
+```swift
+public static let InBounds: GEPNoWrapFlags
+```
+The `inbounds` flag (implies `NUSW`).
+
+```swift
+public static let NUSW: GEPNoWrapFlags
+```
+The no-unsigned-signed-wrap flag.
+
+```swift
+public static let NUW: GEPNoWrapFlags
+```
+The no-unsigned-wrap flag.
+
+### BinaryOpcode
+
+```swift
+public enum BinaryOpcode
+```
+The binary arithmetic operations accepted by `buildBinOp`. The cases mirror the
+`LLVMOpcode` constants for binary instructions (`Add`, `FAdd`, `Sub`, `FSub`,
+`Mul`, `FMul`, `UDiv`, `SDiv`, `FDiv`, `URem`, `SRem`, `FRem`, `Shl`, `LShr`,
+`AShr`, `And`, `Or`, `Xor`).
+
+### CastOpcode
+
+```swift
+public enum CastOpcode
+```
+The cast operations accepted by `buildCast`. The cases mirror the `LLVMOpcode`
+constants for cast instructions (`Trunc`, `ZExt`, `SExt`, `FPToUI`, `FPToSI`,
+`UIToFP`, `SIToFP`, `FPTrunc`, `FPExt`, `PtrToInt`, `IntToPtr`, `BitCast`,
+`AddrSpaceCast`).
+
 ### Builder
 
 ```swift
@@ -307,6 +350,11 @@ public func setInstDebugLocation(_ inst: Instruction)
 Copies the debug location of `inst` onto the next built instruction.
 
 ```swift
+public var defaultFPMathTag: Metadata?
+```
+The default floating-point math metadata for the builder.
+
+```swift
 @discardableResult
 public func buildRet(_ value: Value) -> ReturnInst
 ```
@@ -320,6 +368,12 @@ Builds a `ret void` instruction.
 
 ```swift
 @discardableResult
+public func buildAggregateRet(_ values: [Value]) -> ReturnInst
+```
+Builds a multi-value `ret` instruction returning `values` as an aggregate.
+
+```swift
+@discardableResult
 public func buildAdd(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator
 ```
 Builds an integer `add` instruction.
@@ -329,6 +383,12 @@ Builds an integer `add` instruction.
 public func buildSub(_ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator
 ```
 Builds an integer `sub` instruction.
+
+```swift
+@discardableResult
+public func buildBinOp(_ op: BinaryOpcode, _ lhs: Value, _ rhs: Value, name: String = "") -> BinaryOperator
+```
+Builds a binary instruction for the given `BinaryOpcode`.
 
 ```swift
 @discardableResult
@@ -401,6 +461,24 @@ Builds an exact signed `sdiv` instruction.
 public func buildNSWNeg(_ value: Value, name: String = "") -> BinaryOperator
 ```
 Builds a no-signed-wrap `neg` instruction.
+
+```swift
+@discardableResult
+public func buildNeg(_ value: Value, name: String = "") -> BinaryOperator
+```
+Builds a `neg` instruction (integer `sub` from zero).
+
+```swift
+@discardableResult
+public func buildNUWNeg(_ value: Value, name: String = "") -> BinaryOperator
+```
+Builds a no-unsigned-wrap `neg` instruction.
+
+```swift
+@discardableResult
+public func buildNot(_ value: Value, name: String = "") -> BinaryOperator
+```
+Builds a bitwise `not` instruction (integer `xor` with `-1`).
 
 ```swift
 @discardableResult
@@ -494,6 +572,12 @@ Builds an `alloca` instruction for `type`.
 
 ```swift
 @discardableResult
+public func buildArrayAlloca(_ type: LLVMType, size: Value, name: String = "") -> AllocaInst
+```
+Builds an `alloca` of `size` elements of `type`.
+
+```swift
+@discardableResult
 public func buildLoad(_ type: LLVMType, _ ptr: Value, name: String = "") -> LoadInst
 ```
 Builds a `load` instruction of `type` from `ptr`.
@@ -524,6 +608,18 @@ Builds an `icmp` instruction. `predicate` is a cLLVM re-exported `LLVMIntPredica
 
 ```swift
 @discardableResult
+public func buildIsNull(_ value: Value, name: String = "") -> ICmpInst
+```
+Builds an `icmp eq` test against `null`/zero.
+
+```swift
+@discardableResult
+public func buildIsNotNull(_ value: Value, name: String = "") -> ICmpInst
+```
+Builds an `icmp ne` test against `null`/zero.
+
+```swift
+@discardableResult
 public func buildFCmp(_ predicate: LLVMRealPredicate, _ lhs: Value, _ rhs: Value, name: String = "") -> FCmpInst
 ```
 Builds an `fcmp` instruction. `predicate` is a cLLVM re-exported `LLVMRealPredicate`.
@@ -533,6 +629,19 @@ Builds an `fcmp` instruction. `predicate` is a cLLVM re-exported `LLVMRealPredic
 public func buildCall(_ function: Function, _ args: [Value], name: String = "") -> CallInst
 ```
 Builds a `call` instruction invoking `function` with `args`.
+
+```swift
+@discardableResult
+public func buildCall(_ callee: Value, type: FunctionType, _ args: [Value], name: String = "") -> CallInst
+```
+Builds a `call` instruction invoking an arbitrary value (e.g. a loaded function
+pointer) as `callee`, with the function type given explicitly.
+
+```swift
+@discardableResult
+public func buildCallWithOperandBundles(_ callee: Value, type: FunctionType, _ args: [Value], bundles: [OperandBundle], name: String = "") -> CallInst
+```
+Builds a `call` instruction with attached operand `bundles`.
 
 ```swift
 @discardableResult
@@ -551,6 +660,48 @@ Builds a `select` instruction choosing between `then` and `` `else` ``.
 public func buildGEP(_ elementType: LLVMType, _ ptr: Value, indices: [Value], name: String = "") -> GetElementPtrInst
 ```
 Builds a `getelementptr` instruction into `ptr` with the given `indices`.
+
+```swift
+@discardableResult
+public func buildInBoundsGEP(_ elementType: LLVMType, _ ptr: Value, indices: [Value], name: String = "") -> GetElementPtrInst
+```
+Builds an `inbounds` `getelementptr` instruction.
+
+```swift
+@discardableResult
+public func buildStructGEP(_ structType: LLVMType, _ ptr: Value, index: UInt32, name: String = "") -> GetElementPtrInst
+```
+Builds a `getelementptr` into struct field `index` of `ptr`.
+
+```swift
+@discardableResult
+public func buildGEPWithNoWrapFlags(_ elementType: LLVMType, _ ptr: Value, indices: [Value], noWrapFlags: GEPNoWrapFlags, name: String = "") -> GetElementPtrInst
+```
+Builds a `getelementptr` with explicit `noWrapFlags`.
+
+```swift
+@discardableResult
+public func buildPtrDiff(_ elementType: LLVMType, _ lhs: Value, _ rhs: Value, name: String = "") -> Value
+```
+Builds the pointer difference `lhs - rhs` in elements of `elementType`.
+
+```swift
+@discardableResult
+public func buildGlobalString(_ string: String, name: String = "") -> Value
+```
+Creates a global string constant and returns its value.
+
+```swift
+@discardableResult
+public func buildGlobalStringPtr(_ string: String, name: String = "") -> Value
+```
+Creates a global string constant and returns a pointer to it.
+
+```swift
+@discardableResult
+public func buildCast(_ op: CastOpcode, _ value: Value, to type: LLVMType, name: String = "") -> CastInst
+```
+Builds a cast instruction for the given `CastOpcode`.
 
 ```swift
 @discardableResult
@@ -767,6 +918,18 @@ Builds a `landingpad` instruction.
 public func buildInvoke(_ function: Function, _ args: [Value], then: BasicBlock, catch: BasicBlock, name: String = "") -> InvokeInst
 ```
 Builds an `invoke` instruction that lands in `` `catch` `` on unwind.
+
+```swift
+@discardableResult
+public func buildInvoke(_ callee: Value, type: FunctionType, _ args: [Value], then: BasicBlock, catch: BasicBlock, name: String = "") -> InvokeInst
+```
+Builds an `invoke` with an arbitrary `callee` value and an explicit function type.
+
+```swift
+@discardableResult
+public func buildInvokeWithOperandBundles(_ callee: Value, type: FunctionType, _ args: [Value], bundles: [OperandBundle], then: BasicBlock, catch: BasicBlock, name: String = "") -> InvokeInst
+```
+Builds an `invoke` with attached operand `bundles`.
 
 ```swift
 @discardableResult
