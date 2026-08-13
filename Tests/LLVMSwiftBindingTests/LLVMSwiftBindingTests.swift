@@ -2710,6 +2710,22 @@ struct LLVMSwiftBindingTests {
         var symbolValue = 42
         LLVMSupport.addSymbol("my_test_symbol", value: &symbolValue)
         #expect(LLVMSupport.searchForAddressOfSymbol("my_test_symbol") != nil)
-        #expect(LLVMSupport.loadLibraryPermanently("libm.so.6"))
+        #expect(LLVMSupport.loadLibraryPermanently("/usr/lib/libc.so.6"))
+    }
+
+    @Test func functionTypeQuery() {
+        let ctx = Context()
+        let module = Module(name: "fn", in: ctx)
+        let i32 = ctx.int32
+        let fnType = ctx.functionType(returnType: i32, parameterTypes: [i32, ctx.double], isVariadic: true)
+        let fn = module.addFunction("f", type: fnType)
+
+        #expect(fn.functionType.isFunction)
+        #expect(fn.functionType.returnType.ref == i32.ref)
+        #expect(fn.functionType.parameterCount == 2)
+        #expect(fn.functionType.parameterTypes[1].ref == ctx.double.ref)
+        #expect(fn.functionType.isVariadic)
+        #expect(fn.functionType.ref == fnType.ref)
+        #expect(fn.type.kind == LLVMPointerTypeKind)
     }
 }

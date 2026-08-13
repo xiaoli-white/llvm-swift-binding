@@ -14,6 +14,10 @@ public final class Function: Value {
         LLVMCountParams(ref)
     }
 
+    public var functionType: FunctionType {
+        context.wrapType(LLVMGlobalGetValueType(ref)!) as! FunctionType
+    }
+
     public func parameter(at index: UInt32) -> Argument {
         Argument(ref: LLVMGetParam(ref, index)!, function: self, module: module!)
     }
