@@ -272,7 +272,7 @@ struct LLVMSwiftBindingTests {
         #expect(parsed.irString.contains("ret i32 42"))
     }
 
-    @Test(.disabled("LLVM ORC JIT crashes with glibc 2.44 tpp.c assertion on Arch Linux"))
+    @Test
     func jitHelloWorld() throws {
         let ctx = Context()
         let module = Module(name: "jit", in: ctx)
@@ -285,7 +285,8 @@ struct LLVMSwiftBindingTests {
         builder.buildRet(ctx.constantInt(42, type: i32))
 
         let jit = try LLJIT()
-        #expect(jit.globalPrefix == "@")
+        #expect(jit.globalPrefix == Character(UnicodeScalar(0)))
+        #expect(jit.triple.hasPrefix("x86_64"))
         try jit.enableDebugSupport()
         try jit.addModule(module)
         let address = try jit.lookup("main")
@@ -294,7 +295,7 @@ struct LLVMSwiftBindingTests {
         #expect(result == 42)
     }
 
-    @Test(.disabled("LLVM ORC JIT crashes with glibc 2.44 tpp.c assertion on Arch Linux"))
+    @Test
     func jitAddFunction() throws {
         let ctx = Context()
         let module = Module(name: "jitadd", in: ctx)

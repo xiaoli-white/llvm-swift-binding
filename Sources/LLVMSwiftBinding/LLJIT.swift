@@ -43,14 +43,18 @@ public final class LLJIT {
     }
 
     public func addModule(_ module: Module) throws {
-        let tsm = LLVMOrcCreateNewThreadSafeModule(module.ref, module.context.ref)
-        defer { LLVMOrcDisposeThreadSafeModule(tsm) }
+        let tsc = LLVMOrcCreateNewThreadSafeContextFromLLVMContext(module.context.ref)
+        defer { LLVMOrcDisposeThreadSafeContext(tsc) }
+        let tsm = LLVMOrcCreateNewThreadSafeModule(module.ref, tsc)
         let dylib = LLVMOrcLLJITGetMainJITDylib(ref)
         let err = LLVMOrcLLJITAddLLVMIRModule(ref, dylib, tsm)
         if err != nil {
+            LLVMOrcDisposeThreadSafeModule(tsm)
             let msg = errorMessage(from: err!)
             throw LLVMError.emitFailed(message: "failed to add IR module: \(msg)")
         }
+        module.ownsRef = false
+        module.context.ownsRef = false
     }
 
     public func lookup(_ name: String) throws -> UInt64 {

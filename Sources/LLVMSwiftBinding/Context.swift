@@ -2,6 +2,7 @@ import cLLVM
 
 public final class Context {
     public let ref: LLVMContextRef
+    public var ownsRef: Bool = true
     private var typeCache: [OpaquePointer: LLVMType] = [:]
     private var constantCache: [OpaquePointer: Constant] = [:]
 
@@ -10,7 +11,9 @@ public final class Context {
     }
 
     deinit {
-        LLVMContextDispose(ref)
+        if ownsRef {
+            LLVMContextDispose(ref)
+        }
     }
 
     public var int1: IntegerType { intType(width: 1) }
