@@ -1470,6 +1470,27 @@ struct LLVMSwiftBindingTests {
         try module.verify()
     }
 
+    @Test func passBuilderRunPassesWithoutOptions() throws {
+        let ctx = Context()
+        let module = Module(name: "passes", in: ctx)
+        let i32 = ctx.int32
+
+        let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+        let main = module.addFunction("main", type: mainType)
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        let x = builder.buildAdd(main.parameter(at: 0), ctx.constantInt(0, type: i32), name: "x")
+        builder.buildRet(x)
+
+        let pm = PassManager()
+        try pm.runPasses("instcombine", on: module)
+
+        let after = module.irString
+        #expect(!after.contains("add"))
+        try module.verify()
+    }
+
     @Test func constantsSupplementary() throws {
         let ctx = Context()
         let i32 = ctx.int32

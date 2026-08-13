@@ -45,8 +45,9 @@ public final class PassManager {
         targetMachine: TargetMachine? = nil,
         options: PassBuilderOptions? = nil
     ) throws {
+        let effectiveOptions = options ?? PassBuilderOptions()
         let errorRef = passes.withCString { passPtr in
-            LLVMRunPasses(module.ref, passPtr, targetMachine?.ref, options?.ref)
+            LLVMRunPasses(module.ref, passPtr, targetMachine?.ref, effectiveOptions.ref)
         }
         if let errorRef {
             let messagePtr = LLVMGetErrorMessage(errorRef)!
@@ -62,8 +63,9 @@ public final class PassManager {
         targetMachine: TargetMachine? = nil,
         options: PassBuilderOptions? = nil
     ) throws {
+        let effectiveOptions = options ?? PassBuilderOptions()
         let errorRef = passes.withCString { passPtr in
-            LLVMRunPassesOnFunction(function.ref, passPtr, targetMachine?.ref, options?.ref)
+            LLVMRunPassesOnFunction(function.ref, passPtr, targetMachine?.ref, effectiveOptions.ref)
         }
         if let errorRef {
             let messagePtr = LLVMGetErrorMessage(errorRef)!
