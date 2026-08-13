@@ -5,6 +5,10 @@ public final class GlobalVariable: Value {
         super.init(ref: ref, context: module.context, module: module)
     }
 
+    public var valueType: LLVMType {
+        context.wrapType(LLVMGlobalGetValueType(ref))
+    }
+
     public var initializer: Constant? {
         get {
             guard let val = LLVMGetInitializer(ref) else { return nil }

@@ -3,6 +3,17 @@ import Foundation
 @testable import LLVMSwiftBinding
 import Testing
 
+private func resolveExecutable(_ name: String) -> String {
+    guard let path = ProcessInfo.processInfo.environment["PATH"] else { return name }
+    for dir in path.split(separator: ":") {
+        let candidate = URL(fileURLWithPath: String(dir)).appendingPathComponent(name).path
+        if FileManager.default.isExecutableFile(atPath: candidate) {
+            return candidate
+        }
+    }
+    return name
+}
+
 @Suite(.serialized)
 struct LLVMSwiftBindingTests {
     @Test func helloWorldIR() {
@@ -48,7 +59,7 @@ struct LLVMSwiftBindingTests {
         }
 
         let linkProcess = Process()
-        linkProcess.executableURL = URL(fileURLWithPath: "/usr/bin/cc")
+        linkProcess.executableURL = URL(fileURLWithPath: resolveExecutable("cc"))
         linkProcess.arguments = [objPath, "-o", exePath]
         try linkProcess.run()
         linkProcess.waitUntilExit()
@@ -106,7 +117,7 @@ struct LLVMSwiftBindingTests {
         }
 
         let linkProcess = Process()
-        linkProcess.executableURL = URL(fileURLWithPath: "/usr/bin/cc")
+        linkProcess.executableURL = URL(fileURLWithPath: resolveExecutable("cc"))
         linkProcess.arguments = [objPath, "-o", exePath]
         try linkProcess.run()
         linkProcess.waitUntilExit()
@@ -171,7 +182,7 @@ struct LLVMSwiftBindingTests {
         }
 
         let linkProcess = Process()
-        linkProcess.executableURL = URL(fileURLWithPath: "/usr/bin/cc")
+        linkProcess.executableURL = URL(fileURLWithPath: resolveExecutable("cc"))
         linkProcess.arguments = [objPath, "-o", exePath]
         try linkProcess.run()
         linkProcess.waitUntilExit()
@@ -220,7 +231,7 @@ struct LLVMSwiftBindingTests {
         }
 
         let linkProcess = Process()
-        linkProcess.executableURL = URL(fileURLWithPath: "/usr/bin/cc")
+        linkProcess.executableURL = URL(fileURLWithPath: resolveExecutable("cc"))
         linkProcess.arguments = [objPath, "-o", exePath]
         try linkProcess.run()
         linkProcess.waitUntilExit()
@@ -2710,7 +2721,7 @@ struct LLVMSwiftBindingTests {
         var symbolValue = 42
         LLVMSupport.addSymbol("my_test_symbol", value: &symbolValue)
         #expect(LLVMSupport.searchForAddressOfSymbol("my_test_symbol") != nil)
-        #expect(LLVMSupport.loadLibraryPermanently("/usr/lib/libc.so.6"))
+        #expect(LLVMSupport.loadLibraryPermanently("libc.so.6"))
     }
 
     @Test func functionTypeQuery() {
@@ -2727,5 +2738,12 @@ struct LLVMSwiftBindingTests {
         #expect(fn.functionType.isVariadic)
         #expect(fn.functionType.ref == fnType.ref)
         #expect(fn.type.kind == LLVMPointerTypeKind)
+
+        let global = module.addGlobal("g", type: i32)
+        #expect(global.valueType.ref == i32.ref)
+
+        let resolver = module.addFunction("resolver", type: ctx.functionType(returnType: i32))
+        let ifunc = module.addIFunc("fptr", type: ctx.functionType(returnType: i32), resolver: resolver)
+        #expect(ifunc.valueType.isFunction)
     }
 }

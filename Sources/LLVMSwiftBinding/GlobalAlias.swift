@@ -25,6 +25,10 @@ public final class GlobalIFunc: Value {
         return Value(ref: ref, context: context, module: module)
     }
 
+    public var valueType: LLVMType {
+        context.wrapType(LLVMGlobalGetValueType(ref))
+    }
+
     public func eraseFromParent() {
         LLVMEraseGlobalIFunc(ref)
     }
