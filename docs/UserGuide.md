@@ -123,23 +123,98 @@ try pm.runPasses("default<O2>", on: module, targetMachine: targetMachine)
 
 ## Code Generation
 
-Emit an object file, link it with `cc`, and run the binary:
+The full pipeline — build a module with a loop, optimize it with `PassManager`,
+emit an object file, link with `cc`, and run the resulting native binary:
 
 ```swift
+import LLVMSwiftBinding
+
+let ctx = Context()
+let module = Module(name: "demo", in: ctx)
+let i32 = ctx.int32
+let main = module.addFunction("main", type: ctx.functionType(returnType: i32, parameterTypes: []))
+
+let entry = main.appendBasicBlock("entry")
+let loop = main.appendBasicBlock("loop")
+let body = main.appendBasicBlock("body")
+let exit = main.appendBasicBlock("exit")
+
+let builder = Builder(in: ctx)
+builder.positionAtEnd(of: entry)
+builder.buildBr(loop)
+
+// loop: sum += i; i += 1; while i < 10
+builder.positionAtEnd(of: loop)
+let sum = builder.buildPhi(i32, name: "sum")
+let i = builder.buildPhi(i32, name: "i")
+let cond = builder.buildICmp(LLVMIntSLT, i, ctx.constantInt(10, type: i32), name: "cond")
+builder.buildCondBr(cond, then: body, else: exit)
+
+builder.positionAtEnd(of: body)
+let sumNext = builder.buildAdd(sum, i, name: "sum.next")
+let iNext = builder.buildAdd(i, ctx.constantInt(1, type: i32), name: "i.next")
+sum.addIncoming(ctx.constantInt(0, type: i32), from: entry)
+sum.addIncoming(sumNext, from: body)
+i.addIncoming(ctx.constantInt(0, type: i32), from: entry)
+i.addIncoming(iNext, from: body)
+builder.buildBr(loop)
+
+builder.positionAtEnd(of: exit)
+builder.buildRet(sum)
+try module.verify()
+
+// Optimize (new pass manager; options are optional — the binding supplies
+// default PassBuilderOptions when none are given)
+let pm = PassManager()
+try pm.runPasses("default<O2>", on: module, targetMachine: nil)
+
+// Module -> native object file
 TargetMachine.initializeAllTargets()
 let triple = TargetMachine.defaultTriple
 let target = try Target.fromTriple(triple)
 let tm = TargetMachine(target: target, triple: triple, cpu: TargetMachine.hostCPUName)
-
-let objPath = "/tmp/example.o"
-try tm.emitToFile(module: module, objPath)
+try tm.emitToFile(module: module, "/tmp/demo.o")
 ```
 
 ```bash
-cc /tmp/example.o -o /tmp/example && /tmp/example
+cc /tmp/demo.o -o /tmp/demo
+/tmp/demo; echo $?   # prints 45 (the loop 0+1+...+9 is folded by O2)
 ```
 
-`emitToFile` supports other file types through `fileType:` (assembly, object, etc.).
+Before optimization the module contains the phi/loop structure:
+
+```llvm
+define i32 @main() {
+entry:
+  br label %loop
+loop:
+  %sum = phi i32 [ 0, %entry ], [ %sum.next, %body ]
+  %i = phi i32 [ 0, %entry ], [ %i.next, %body ]
+  %cond = icmp slt i32 %i, 10
+  br i1 %cond, label %body, label %exit
+...
+```
+
+After `default<O2>` the loop is constant-folded to a single return:
+
+```llvm
+define noundef i32 @main() local_unnamed_addr #0 {
+entry:
+  ret i32 45
+}
+```
+
+Key points:
+
+- **`TargetMachine.initializeAllTargets()`** must be called before emitting; it
+  registers all targets, target infos, MC layers, assembler printers, and
+  disassemblers.
+- **`emitToFile(module:_:fileType:)`** defaults to `LLVMObjectFile` (`.o`); pass
+  `LLVMAssemblyFile` to emit `.s` instead.
+- **`main` follows the C ABI** — with parameters, the first `i32` is `argc`. A
+  parameterless `main` returning `i32` becomes the process exit code.
+- The `targetMachine:` argument of `runPasses` is optional; target-independent
+  pipelines such as `default<O2>` run without one.
 
 ## Reading IR and Bitcode
 
@@ -238,5 +313,5 @@ Run the test suite with:
 swift test
 ```
 
-The suite uses the swift-testing framework. Two ORC JIT tests are disabled on glibc
-2.44 (an LLVM assertion in `tpp.c` on Arch Linux).
+The suite uses the swift-testing framework. All 77 tests run, including the ORC
+JIT tests (`LLJIT`).
