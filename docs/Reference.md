@@ -1850,6 +1850,58 @@ public var kind: LLVMMetadataKind
 ```
 The metadata kind (cLLVM re-exported `LLVMMetadataKind`).
 
+## DbgRecord.swift
+
+### DbgRecord
+
+```swift
+public final class DbgRecord
+```
+A debug record attached to an instruction (LLVM 22 new debug-info format).
+
+```swift
+public let ref: LLVMDbgRecordRef
+public let context: Context
+public let module: Module?
+```
+The underlying cLLVM re-exported `LLVMDbgRecordRef` handle, the owning
+`Context`, and the owning `Module` (may be `nil`).
+
+```swift
+public var kind: LLVMDbgRecordKind
+```
+The record kind (`label`, `declare`, `value`, or `assign`).
+
+```swift
+public var kindName: String
+```
+A human-readable name of the record kind.
+
+```swift
+public var debugLoc: Metadata?
+```
+The debug location attached to the record, if any.
+
+```swift
+public var description: String
+```
+The textual IR representation of the record.
+
+```swift
+public var variable: Metadata?
+```
+The `DILocalVariable` of a variable record, if the kind is declare/value/assign.
+
+```swift
+public var expression: Metadata?
+```
+The `DIExpression` of the variable record, if any.
+
+```swift
+public func value(at index: UInt32) -> Value?
+```
+The value operand of the variable record at the given index, if any.
+
 ## Disassembler.swift
 
 ### Disassembler

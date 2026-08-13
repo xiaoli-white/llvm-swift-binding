@@ -228,4 +228,73 @@ public final class Module {
         }
         return nodes.map { Value(ref: $0!, context: context, module: self) }
     }
+
+    public func type(named name: String) -> LLVMType? {
+        guard let ref = name.withCString({ LLVMGetTypeByName2(context.ref, $0) }) else { return nil }
+        return context.wrapType(ref)
+    }
+
+    public func appendInlineAsm(_ asm: String) {
+        asm.withCString { ptr in
+            LLVMAppendModuleInlineAsm(ref, ptr, asm.utf8.count)
+        }
+    }
+
+    public func write(toFile path: String) throws {
+        var errorMessage: UnsafeMutablePointer<CChar>?
+        let result = path.withCString { ptr in
+            LLVMPrintModuleToFile(ref, ptr, &errorMessage)
+        }
+        guard result == 0 else {
+            let message = errorMessage.flatMap { String(cString: $0) } ?? "unknown error"
+            if let errorMessage { LLVMDisposeMessage(errorMessage) }
+            throw LLVMError.emitFailed(message: message)
+        }
+    }
+
+    public func addModuleFlag(_ behavior: LLVMModuleFlagBehavior, key: String, value: Metadata) {
+        key.withCString { keyPtr in
+            LLVMAddModuleFlag(ref, behavior, keyPtr, key.utf8.count, value.ref)
+        }
+    }
+
+    public func moduleFlag(key: String) -> Metadata? {
+        var result: LLVMMetadataRef?
+        key.withCString { keyPtr in
+            result = LLVMGetModuleFlag(ref, keyPtr, key.utf8.count)
+        }
+        guard let ref = result else { return nil }
+        return Metadata(ref: ref)
+    }
+
+    public var moduleFlags: [(behavior: LLVMModuleFlagBehavior, key: String, value: Metadata)] {
+        var length = 0
+        guard let entries = LLVMCopyModuleFlagsMetadata(ref, &length) else { return [] }
+        defer { LLVMDisposeModuleFlagsMetadata(entries) }
+        var result: [(LLVMModuleFlagBehavior, String, Metadata)] = []
+        for i in 0 ..< UInt32(length) {
+            let behavior = LLVMModuleFlagEntriesGetFlagBehavior(entries, i)
+            var keyLength = 0
+            let key: String
+            if let ptr = LLVMModuleFlagEntriesGetKey(entries, i, &keyLength) {
+                let bytes = UnsafeBufferPointer(start: ptr, count: keyLength).map { UInt8(bitPattern: $0) }
+                key = String(decoding: bytes, as: UTF8.self)
+            } else {
+                key = ""
+            }
+            let metadata = LLVMModuleFlagEntriesGetMetadata(entries, i)!
+            result.append((behavior, key, Metadata(ref: metadata)))
+        }
+        return result
+    }
+
+    public func addGlobal(_ name: String, type: LLVMType, addressSpace: UInt32) -> GlobalVariable {
+        let ref = LLVMAddGlobalInAddressSpace(ref, type.ref, name, addressSpace)!
+        return GlobalVariable(ref: ref, module: self)
+    }
+
+    public var isNewDbgInfoFormat: Bool {
+        get { LLVMIsNewDbgInfoFormat(ref) != 0 }
+        set { LLVMSetIsNewDbgInfoFormat(ref, newValue ? 1 : 0) }
+    }
 }

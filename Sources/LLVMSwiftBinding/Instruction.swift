@@ -85,6 +85,94 @@ public class Instruction: Value {
         return inst
     }
 
+    public var isTerminator: Bool {
+        LLVMIsATerminatorInst(ref) != nil
+    }
+
+    public var isAtomic: Bool {
+        LLVMIsAtomic(ref) != 0
+    }
+
+    public var isAtomicSingleThread: Bool {
+        get { LLVMIsAtomicSingleThread(ref) != 0 }
+        set { LLVMSetAtomicSingleThread(ref, newValue ? 1 : 0) }
+    }
+
+    public var syncScopeID: UInt32 {
+        get { LLVMGetAtomicSyncScopeID(ref) }
+        set { LLVMSetAtomicSyncScopeID(ref, newValue) }
+    }
+
+    public var previousInstruction: Instruction? {
+        guard let prev = LLVMGetPreviousInstruction(ref) else { return nil }
+        return Instruction.wrap(prev, context: context, module: module)
+    }
+
+    public var nextInstruction: Instruction? {
+        guard let next = LLVMGetNextInstruction(ref) else { return nil }
+        return Instruction.wrap(next, context: context, module: module)
+    }
+
+    public var firstDbgRecord: DbgRecord? {
+        guard let rec = LLVMGetFirstDbgRecord(ref) else { return nil }
+        return DbgRecord(ref: rec, context: context, module: module)
+    }
+
+    public var lastDbgRecord: DbgRecord? {
+        guard let rec = LLVMGetLastDbgRecord(ref) else { return nil }
+        return DbgRecord(ref: rec, context: context, module: module)
+    }
+
+    public var dbgRecords: [DbgRecord] {
+        var result: [DbgRecord] = []
+        guard let first = LLVMGetFirstDbgRecord(ref) else { return [] }
+        var current: LLVMDbgRecordRef? = first
+        while let rec = current {
+            result.append(DbgRecord(ref: rec, context: context, module: module))
+            current = LLVMGetNextDbgRecord(rec)
+        }
+        return result
+    }
+
+    public var successorCount: UInt32 {
+        LLVMGetNumSuccessors(ref)
+    }
+
+    public func successor(at index: UInt32) -> BasicBlock? {
+        guard let block = LLVMGetSuccessor(ref, index) else { return nil }
+        return basicBlock(from: block)
+    }
+
+    public func setSuccessor(at index: UInt32, _ block: BasicBlock) {
+        LLVMSetSuccessor(ref, index, block.ref)
+    }
+
+    public var numArgOperands: UInt32 {
+        LLVMGetNumArgOperands(ref)
+    }
+
+    public func argOperand(at index: UInt32) -> Value? {
+        guard let operand = LLVMGetArgOperand(ref, index) else { return nil }
+        return Value(ref: operand, context: context, module: module)
+    }
+
+    public func setArgOperand(at index: UInt32, _ value: Value) {
+        LLVMSetArgOperand(ref, index, value.ref)
+    }
+
+    public var fastMathFlags: UInt32 {
+        get { LLVMGetFastMathFlags(ref) }
+        set { LLVMSetFastMathFlags(ref, newValue) }
+    }
+
+    public var canUseFastMathFlags: Bool {
+        LLVMCanValueUseFastMathFlags(ref) != 0
+    }
+
+    public func setParamAlignment(at index: UInt32, _ alignment: UInt32) {
+        LLVMSetInstrParamAlignment(ref, index, alignment)
+    }
+
     public var opcode: LLVMOpcode {
         LLVMGetInstructionOpcode(ref)
     }
@@ -226,9 +314,38 @@ public class Instruction: Value {
 
 public final class ReturnInst: Instruction {}
 
-public final class BinaryOperator: Instruction {}
+public final class BinaryOperator: Instruction {
+    public var isNSW: Bool {
+        get { LLVMGetNSW(ref) != 0 }
+        set { LLVMSetNSW(ref, newValue ? 1 : 0) }
+    }
 
-public final class AllocaInst: Instruction {}
+    public var isNUW: Bool {
+        get { LLVMGetNUW(ref) != 0 }
+        set { LLVMSetNUW(ref, newValue ? 1 : 0) }
+    }
+
+    public var isExact: Bool {
+        get { LLVMGetExact(ref) != 0 }
+        set { LLVMSetExact(ref, newValue ? 1 : 0) }
+    }
+
+    public var isDisjoint: Bool {
+        get { LLVMGetIsDisjoint(ref) != 0 }
+        set { LLVMSetIsDisjoint(ref, newValue ? 1 : 0) }
+    }
+
+    public var isNNeg: Bool {
+        get { LLVMGetNNeg(ref) != 0 }
+        set { LLVMSetNNeg(ref, newValue ? 1 : 0) }
+    }
+}
+
+public final class AllocaInst: Instruction {
+    public var allocatedType: LLVMType {
+        context.wrapType(LLVMGetAllocatedType(ref)!)
+    }
+}
 
 public final class LoadInst: Instruction {
     public var isVolatile: Bool {
@@ -254,7 +371,21 @@ public final class StoreInst: Instruction {
     }
 }
 
-public final class BranchInst: Instruction {}
+public final class BranchInst: Instruction {
+    public var isConditional: Bool {
+        LLVMIsConditional(ref) != 0
+    }
+
+    public var condition: Value? {
+        get {
+            guard let cond = LLVMGetCondition(ref) else { return nil }
+            return Value(ref: cond, context: context, module: module)
+        }
+        set {
+            LLVMSetCondition(ref, newValue!.ref)
+        }
+    }
+}
 
 public final class SwitchInst: Instruction {
     public func addCase(_ on: Value, _ dest: BasicBlock) {
@@ -284,6 +415,11 @@ public final class SwitchInst: Instruction {
 public final class ICmpInst: Instruction {
     public var predicate: LLVMIntPredicate {
         LLVMGetICmpPredicate(ref)
+    }
+
+    public var isSameSign: Bool {
+        get { LLVMGetICmpSameSign(ref) != 0 }
+        set { LLVMSetICmpSameSign(ref, newValue ? 1 : 0) }
     }
 }
 
@@ -320,7 +456,21 @@ public final class CallInst: Instruction {
     }
 }
 
-public final class CallBrInst: Instruction {}
+public final class CallBrInst: Instruction {
+    public var defaultDest: BasicBlock? {
+        guard let block = LLVMGetCallBrDefaultDest(ref) else { return nil }
+        return basicBlock(from: block)
+    }
+
+    public var numIndirectDests: UInt32 {
+        LLVMGetCallBrNumIndirectDests(ref)
+    }
+
+    public func indirectDest(at index: UInt32) -> BasicBlock? {
+        guard let block = LLVMGetCallBrIndirectDest(ref, index) else { return nil }
+        return basicBlock(from: block)
+    }
+}
 
 public final class PHINode: Instruction {
     public func addIncoming(_ value: Value, from block: BasicBlock) {
@@ -356,7 +506,16 @@ public final class PHINode: Instruction {
 
 public final class SelectInst: Instruction {}
 
-public final class GetElementPtrInst: Instruction {}
+public final class GetElementPtrInst: Instruction {
+    public var sourceElementType: LLVMType {
+        context.wrapType(LLVMGetGEPSourceElementType(ref)!)
+    }
+
+    public var noWrapFlags: GEPNoWrapFlags {
+        get { GEPNoWrapFlags(rawValue: LLVMGEPGetNoWrapFlags(ref)) }
+        set { LLVMGEPSetNoWrapFlags(ref, newValue.rawValue) }
+    }
+}
 
 public final class CastInst: Instruction {
     public var value: Value? {
@@ -394,6 +553,21 @@ public final class AtomicCmpXchgInst: Instruction {
         get { LLVMGetVolatile(ref) != 0 }
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
+
+    public var successOrdering: LLVMAtomicOrdering {
+        get { LLVMGetCmpXchgSuccessOrdering(ref) }
+        set { LLVMSetCmpXchgSuccessOrdering(ref, newValue) }
+    }
+
+    public var failureOrdering: LLVMAtomicOrdering {
+        get { LLVMGetCmpXchgFailureOrdering(ref) }
+        set { LLVMSetCmpXchgFailureOrdering(ref, newValue) }
+    }
+
+    public var isWeak: Bool {
+        get { LLVMGetWeak(ref) != 0 }
+        set { LLVMSetWeak(ref, newValue ? 1 : 0) }
+    }
 }
 
 public final class ExtractValueInst: Instruction {}
@@ -404,7 +578,15 @@ public final class ExtractElementInst: Instruction {}
 
 public final class InsertElementInst: Instruction {}
 
-public final class ShuffleVectorInst: Instruction {}
+public final class ShuffleVectorInst: Instruction {
+    public var numMaskElements: UInt32 {
+        LLVMGetNumMaskElements(ref)
+    }
+
+    public func maskValue(at index: UInt32) -> Int32 {
+        LLVMGetMaskValue(ref, index)
+    }
+}
 
 public final class FreezeInst: Instruction {}
 
@@ -415,6 +597,26 @@ public final class ResumeInst: Instruction {}
 public final class InvokeInst: Instruction {
     public func addClause(_ clause: Value) {
         LLVMAddClause(ref, clause.ref)
+    }
+
+    public var normalDest: BasicBlock? {
+        get {
+            guard let block = LLVMGetNormalDest(ref) else { return nil }
+            return basicBlock(from: block)
+        }
+        set {
+            LLVMSetNormalDest(ref, newValue!.ref)
+        }
+    }
+
+    public var unwindDest: BasicBlock? {
+        get {
+            guard let block = LLVMGetUnwindDest(ref) else { return nil }
+            return basicBlock(from: block)
+        }
+        set {
+            LLVMSetUnwindDest(ref, newValue!.ref)
+        }
     }
 }
 

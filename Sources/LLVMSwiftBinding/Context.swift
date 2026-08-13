@@ -39,6 +39,63 @@ public final class Context {
         wrapType(LLVMDoubleTypeInContext(ref)!) as! FloatType
     }
 
+    public var half: FloatType {
+        wrapType(LLVMHalfTypeInContext(ref)!) as! FloatType
+    }
+
+    public var bfloat: FloatType {
+        wrapType(LLVMBFloatTypeInContext(ref)!) as! FloatType
+    }
+
+    public var fp128: FloatType {
+        wrapType(LLVMFP128TypeInContext(ref)!) as! FloatType
+    }
+
+    public var x86FP80: FloatType {
+        wrapType(LLVMX86FP80TypeInContext(ref)!) as! FloatType
+    }
+
+    public var ppcFP128: FloatType {
+        wrapType(LLVMPPCFP128TypeInContext(ref)!) as! FloatType
+    }
+
+    public var x86AMX: LLVMType {
+        wrapType(LLVMX86AMXTypeInContext(ref)!)
+    }
+
+    public var label: LLVMType {
+        wrapType(LLVMLabelTypeInContext(ref)!)
+    }
+
+    public var token: LLVMType {
+        wrapType(LLVMTokenTypeInContext(ref)!)
+    }
+
+    public func mdKindID(_ name: String) -> UInt32 {
+        name.withCString { ptr in
+            LLVMGetMDKindIDInContext(ref, ptr, UInt32(name.utf8.count))
+        }
+    }
+
+    public func syncScopeID(_ name: String) -> UInt32 {
+        name.withCString { ptr in
+            UInt32(LLVMGetSyncScopeID(ref, ptr, name.utf8.count))
+        }
+    }
+
+    public var discardValueNames: Bool {
+        get { LLVMContextShouldDiscardValueNames(ref) != 0 }
+        set { LLVMContextSetDiscardValueNames(ref, newValue ? 1 : 0) }
+    }
+
+    public static var version: (major: UInt32, minor: UInt32, patch: UInt32) {
+        var major: UInt32 = 0
+        var minor: UInt32 = 0
+        var patch: UInt32 = 0
+        LLVMGetVersion(&major, &minor, &patch)
+        return (major, minor, patch)
+    }
+
     public func functionType(returnType: LLVMType, parameterTypes: [LLVMType] = [],
                              isVariadic: Bool = false) -> FunctionType
     {
@@ -254,6 +311,72 @@ public final class Context {
         wrapConstant(LLVMConstShuffleVector(v1.ref, v2.ref, mask.ref)!)
     }
 
+    public func constantInt(arbitraryPrecision words: [UInt64], type: IntegerType) -> ConstantInt {
+        let ref = words.withUnsafeBufferPointer { buffer in
+            LLVMConstIntOfArbitraryPrecision(type.ref, UInt32(words.count), buffer.baseAddress)
+        }
+        return ConstantInt(ref: ref!, context: self)
+    }
+
+    public func constantFP(fromBits bits: [UInt64], type: LLVMType) -> ConstantFP {
+        let ref = bits.withUnsafeBufferPointer { buffer in
+            LLVMConstFPFromBits(type.ref, buffer.baseAddress)
+        }
+        return ConstantFP(ref: ref!, context: self)
+    }
+
+    public func constantNamedStruct(_ type: LLVMType, values: [Constant]) -> ConstantStruct {
+        var valRefs: [LLVMValueRef?] = values.map(\.ref)
+        let ref = valRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstNamedStruct(type.ref, buffer.baseAddress, UInt32(values.count))
+        }
+        return ConstantStruct(ref: ref!, context: self)
+    }
+
+    public func constantInBoundsGEP(_ elementType: LLVMType, _ value: Constant, indices: [Constant]) -> Constant {
+        var indexRefs: [LLVMValueRef?] = indices.map(\.ref)
+        let ref = indexRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstInBoundsGEP2(elementType.ref, value.ref, buffer.baseAddress, UInt32(indices.count))
+        }
+        return wrapConstant(ref!)
+    }
+
+    public func constantGEPWithNoWrapFlags(
+        _ elementType: LLVMType,
+        _ value: Constant,
+        indices: [Constant],
+        flags: GEPNoWrapFlags
+    ) -> Constant {
+        var indexRefs: [LLVMValueRef?] = indices.map(\.ref)
+        let ref = indexRefs.withUnsafeMutableBufferPointer { buffer in
+            LLVMConstGEPWithNoWrapFlags(
+                elementType.ref,
+                value.ref,
+                buffer.baseAddress,
+                UInt32(indices.count),
+                flags.rawValue
+            )
+        }
+        return wrapConstant(ref!)
+    }
+
+    public func sizeOf(_ type: LLVMType) -> Constant {
+        wrapConstant(LLVMSizeOf(type.ref)!)
+    }
+
+    public func alignOf(_ type: LLVMType) -> Constant {
+        wrapConstant(LLVMAlignOf(type.ref)!)
+    }
+
+    public func constantPtrAuth(
+        pointer: Constant,
+        key: Constant,
+        discriminator: Constant,
+        addrDiscriminator: Constant
+    ) -> Constant {
+        wrapConstant(LLVMConstantPtrAuth(pointer.ref, key.ref, discriminator.ref, addrDiscriminator.ref)!)
+    }
+
     public func constantInlineAsm(
         _ type: LLVMType,
         asmString: String,
@@ -262,7 +385,7 @@ public final class Context {
         isAlignStack: Bool,
         dialect: LLVMInlineAsmDialect = LLVMInlineAsmDialectATT,
         canThrow: Bool = false
-    ) -> Value {
+    ) -> InlineAsm {
         let ref = asmString.withCString { asmPtr in
             constraints.withCString { cPtr in
                 LLVMGetInlineAsm(
@@ -278,12 +401,54 @@ public final class Context {
                 )
             }
         }
-        return Value(ref: ref!, context: self)
+        return InlineAsm(ref: ref!, context: self)
     }
 
     public func blockAddress(function: Function, block: BasicBlock) -> BlockAddress {
         let ref = LLVMBlockAddress(function.ref, block.ref)
         return BlockAddress(ref: ref!, context: self)
+    }
+
+    public func lookupIntrinsicID(_ name: String) -> UInt32 {
+        name.withCString { ptr in
+            LLVMLookupIntrinsicID(ptr, name.utf8.count)
+        }
+    }
+
+    public func intrinsicName(_ id: UInt32) -> String? {
+        var length = 0
+        guard let ptr = LLVMIntrinsicGetName(id, &length) else { return nil }
+        let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    public func intrinsicType(_ id: UInt32, paramTypes: [LLVMType] = []) -> LLVMType? {
+        var refs: [LLVMTypeRef?] = paramTypes.map(\.ref)
+        let ref = refs.withUnsafeMutableBufferPointer { buffer in
+            LLVMIntrinsicGetType(self.ref, id, buffer.baseAddress, paramTypes.count)
+        }
+        guard let ref else { return nil }
+        return wrapType(ref)
+    }
+
+    public func intrinsicDeclaration(_ id: UInt32, paramTypes: [LLVMType] = [], in module: Module) -> Function? {
+        var refs: [LLVMTypeRef?] = paramTypes.map(\.ref)
+        let ref = refs.withUnsafeMutableBufferPointer { buffer in
+            LLVMGetIntrinsicDeclaration(module.ref, id, buffer.baseAddress, paramTypes.count)
+        }
+        guard let ref else { return nil }
+        return Function(ref: ref, module: module)
+    }
+
+    public func intrinsicOverloadedName(_ id: UInt32, paramTypes: [LLVMType], in module: Module) -> String? {
+        var refs: [LLVMTypeRef?] = paramTypes.map(\.ref)
+        var nameLength = 0
+        guard let ptr = refs.withUnsafeMutableBufferPointer({ buffer in
+            LLVMIntrinsicCopyOverloadedName2(module.ref, id, buffer.baseAddress, paramTypes.count, &nameLength)
+        }) else { return nil }
+        defer { LLVMDisposeMessage(ptr) }
+        let bytes = UnsafeBufferPointer(start: ptr, count: nameLength).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
     }
 
     public func constantStruct(_ values: [Constant], isPacked: Bool = false) -> ConstantStruct {

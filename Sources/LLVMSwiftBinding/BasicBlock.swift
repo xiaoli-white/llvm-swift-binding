@@ -13,6 +13,10 @@ public final class BasicBlock {
 
     public var context: Context { module.context }
 
+    public var asValue: Value {
+        Value(ref: LLVMBasicBlockAsValue(ref)!, context: context, module: module)
+    }
+
     public var name: String {
         get { String(cString: LLVMGetBasicBlockName(ref)) }
         set { LLVMSetValueName2(ref, newValue, newValue.utf8.count) }
@@ -30,6 +34,10 @@ public final class BasicBlock {
 
     public func moveBasicBlock(before other: BasicBlock) {
         LLVMMoveBasicBlockBefore(ref, other.ref)
+    }
+
+    public func eraseFromParent() {
+        LLVMDeleteBasicBlock(ref)
     }
 
     public var firstInstruction: Instruction? {

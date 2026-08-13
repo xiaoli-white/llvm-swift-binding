@@ -57,6 +57,15 @@ public final class GlobalVariable: Value {
         set { LLVMSetAlignment(ref, newValue) }
     }
 
+    public var isExternallyInitialized: Bool {
+        get { LLVMIsExternallyInitialized(ref) != 0 }
+        set { LLVMSetExternallyInitialized(ref, newValue ? 1 : 0) }
+    }
+
+    public func eraseFromParent() {
+        LLVMDeleteGlobal(ref)
+    }
+
     public var parentModule: Module {
         let moduleRef = LLVMGetGlobalParent(ref)!
         let module = Module(ref: moduleRef, context: context)

@@ -24,4 +24,8 @@ public final class GlobalIFunc: Value {
         guard let ref = LLVMGetGlobalIFuncResolver(ref) else { return nil }
         return Value(ref: ref, context: context, module: module)
     }
+
+    public func eraseFromParent() {
+        LLVMEraseGlobalIFunc(ref)
+    }
 }

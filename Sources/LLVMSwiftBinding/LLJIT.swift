@@ -57,6 +57,16 @@ public final class LLJIT {
         module.context.ownsRef = false
     }
 
+    public func addObjectFile(_ buffer: MemoryBuffer) throws {
+        let dylib = LLVMOrcLLJITGetMainJITDylib(ref)
+        let err = LLVMOrcLLJITAddObjectFile(ref, dylib, buffer.ref)
+        if err != nil {
+            let msg = errorMessage(from: err!)
+            throw LLVMError.emitFailed(message: "failed to add object file: \(msg)")
+        }
+        buffer.disown()
+    }
+
     public func lookup(_ name: String) throws -> UInt64 {
         var address = LLVMOrcExecutorAddress(0)
         let err = name.withCString { namePtr in

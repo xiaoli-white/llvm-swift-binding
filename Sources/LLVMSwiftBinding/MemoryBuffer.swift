@@ -28,6 +28,10 @@ public final class MemoryBuffer {
         return String(decoding: bytes, as: UTF8.self)
     }
 
+    public func disown() {
+        owns = false
+    }
+
     public static func fromString(_ str: String, bufferName: String = "") -> MemoryBuffer {
         let ref = str.withCString { ptr in
             LLVMCreateMemoryBufferWithMemoryRangeCopy(ptr, str.utf8.count, bufferName)
@@ -51,6 +55,17 @@ public final class MemoryBuffer {
         let result = path.withCString { pathPtr -> Int32 in
             LLVMCreateMemoryBufferWithContentsOfFile(pathPtr, &ref, &errMsg)
         }
+        if result != 0 {
+            let msg = errorMessage(from: errMsg)
+            throw LLVMError.parseFailed(message: msg)
+        }
+        return MemoryBuffer(ref: ref!)
+    }
+
+    public static func fromSTDIN() throws -> MemoryBuffer {
+        var ref: LLVMMemoryBufferRef? = nil
+        var errMsg: UnsafeMutablePointer<CChar>? = nil
+        let result = LLVMCreateMemoryBufferWithSTDIN(&ref, &errMsg)
         if result != 0 {
             let msg = errorMessage(from: errMsg)
             throw LLVMError.parseFailed(message: msg)

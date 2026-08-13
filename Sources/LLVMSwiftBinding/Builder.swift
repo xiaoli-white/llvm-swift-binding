@@ -85,6 +85,16 @@ public final class Builder {
         LLVMPositionBuilderBefore(ref, inst.ref)
     }
 
+    public func positionBeforeDbgRecords(in block: BasicBlock, before inst: Instruction) {
+        currentModule = block.module
+        LLVMPositionBuilderBeforeDbgRecords(ref, block.ref, inst.ref)
+    }
+
+    public func positionBeforeInstrAndDbgRecords(_ inst: Instruction) {
+        currentModule = inst.module
+        LLVMPositionBuilderBeforeInstrAndDbgRecords(ref, inst.ref)
+    }
+
     public func setCurrentDebugLocation(_ location: Metadata?) {
         LLVMSetCurrentDebugLocation2(ref, location?.ref)
     }

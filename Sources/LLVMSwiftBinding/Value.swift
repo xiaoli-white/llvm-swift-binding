@@ -125,6 +125,29 @@ public class Value {
         LLVMReplaceAllUsesWith(ref, newValue.ref)
     }
 
+    public func setOperand(at index: UInt32, _ value: Value) {
+        LLVMSetOperand(ref, index, value.ref)
+    }
+
+    public var isBasicBlock: Bool {
+        LLVMValueIsBasicBlock(ref) != 0
+    }
+
+    public var asBasicBlock: BasicBlock? {
+        guard isBasicBlock else { return nil }
+        let block = LLVMValueAsBasicBlock(ref)!
+        guard let fnRef = LLVMGetBasicBlockParent(block) else { return nil }
+        let resultModule: Module
+        if let selfModule = module {
+            resultModule = selfModule
+        } else {
+            resultModule = Module(ref: LLVMGetGlobalParent(fnRef)!, context: context)
+            resultModule.ownsRef = false
+        }
+        let function = Function(ref: fnRef, module: resultModule)
+        return BasicBlock(ref: block, function: function, module: resultModule)
+    }
+
     public var uses: [Value] {
         var result: [Value] = []
         guard let first = LLVMGetFirstUse(ref) else { return [] }
@@ -167,5 +190,41 @@ public class Value {
 public final class Argument: Value {
     public init(ref: LLVMValueRef, function: Function, module: Module) {
         super.init(ref: ref, context: function.context, module: module)
+    }
+}
+
+public final class InlineAsm: Value {
+    public var asmString: String? {
+        var length = 0
+        guard let ptr = LLVMGetInlineAsmAsmString(ref, &length) else { return nil }
+        let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    public var constraintString: String? {
+        var length = 0
+        guard let ptr = LLVMGetInlineAsmConstraintString(ref, &length) else { return nil }
+        let bytes = UnsafeBufferPointer(start: ptr, count: length).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    public var dialect: LLVMInlineAsmDialect {
+        LLVMGetInlineAsmDialect(ref)
+    }
+
+    public var hasSideEffects: Bool {
+        LLVMGetInlineAsmHasSideEffects(ref) != 0
+    }
+
+    public var needsAlignedStack: Bool {
+        LLVMGetInlineAsmNeedsAlignedStack(ref) != 0
+    }
+
+    public var canUnwind: Bool {
+        LLVMGetInlineAsmCanUnwind(ref) != 0
+    }
+
+    public var functionType: LLVMType {
+        context.wrapType(LLVMGetInlineAsmFunctionType(ref)!)
     }
 }

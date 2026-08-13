@@ -62,6 +62,27 @@ public final class ExecutionEngine {
         module.ownsRef = false
     }
 
+    public init(interpreterFor module: Module, optLevel: UInt32 = 0) throws {
+        var engine: LLVMExecutionEngineRef?
+        var errMsg: UnsafeMutablePointer<CChar>?
+        let result = LLVMCreateInterpreterForModule(&engine, module.ref, &errMsg)
+        if result != 0 {
+            let msg = errorMessage(from: errMsg)
+            throw LLVMError.emitFailed(message: "failed to create interpreter: \(msg)")
+        }
+        ref = engine!
+        self.module = module
+        module.ownsRef = false
+    }
+
+    public static func linkInInterpreter() {
+        LLVMLinkInInterpreter()
+    }
+
+    public static func linkInMCJIT() {
+        LLVMLinkInMCJIT()
+    }
+
     deinit {
         LLVMDisposeExecutionEngine(ref)
     }

@@ -2314,4 +2314,402 @@ struct LLVMSwiftBindingTests {
         #expect((ctx.constantNUWSub(five, three) as? ConstantInt)?.unsignedValue == 2)
         #expect((ctx.constantNSWNeg(five) as? ConstantInt)?.signedValue == -5)
     }
+
+    @Test func instructionQueriesAndFlags() throws {
+        let ctx = Context()
+        let module = Module(name: "queries", in: ctx)
+        let i32 = ctx.int32
+        let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32, ctx.double, ctx.double])
+        let main = module.addFunction("main", type: mainType)
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+
+        let add = builder.buildNSWAdd(main.parameter(at: 0), main.parameter(at: 1), name: "s")
+        #expect(add.isNSW)
+        #expect(!add.isNUW)
+        add.isNUW = true
+        #expect(add.isNUW)
+        add.isExact = true
+        #expect(add.isExact)
+        add.isNNeg = true
+        #expect(add.isNNeg)
+        add.isDisjoint = true
+        #expect(add.isDisjoint)
+        #expect(add.isTerminator == false)
+
+        let alloca = builder.buildAlloca(i32)
+        #expect(alloca.allocatedType.isInteger)
+        #expect(alloca.allocatedType.ref == ctx.int32.ref)
+
+        let icmp = builder.buildICmp(LLVMIntSGT, main.parameter(at: 0), main.parameter(at: 1))
+        icmp.isSameSign = true
+        #expect(icmp.isSameSign)
+
+        let fadd = builder.buildFAdd(main.parameter(at: 2), main.parameter(at: 3))
+        #expect(fadd.canUseFastMathFlags)
+        fadd.fastMathFlags = UInt32(LLVMFastMathAllowReassoc)
+        #expect(fadd.fastMathFlags == UInt32(LLVMFastMathAllowReassoc))
+
+        let ok = main.appendBasicBlock("ok")
+        let elseBlock = main.appendBasicBlock("else")
+        let br = builder.buildCondBr(icmp, then: ok, else: elseBlock)
+        #expect(br.isConditional)
+        #expect(br.condition != nil)
+        #expect(br.isTerminator)
+        #expect(br.successorCount == 2)
+        #expect(br.successor(at: 0)?.ref == ok.ref)
+        builder.positionAtEnd(of: elseBlock)
+        builder.buildRet(ctx.constantInt(1, type: i32))
+
+        let funcType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+        let callee = module.addFunction("callee", type: funcType)
+        builder.positionAtEnd(of: ok)
+        let call = builder.buildCall(callee, [main.parameter(at: 0)])
+        #expect(call.numArgOperands == 1)
+        let arg8 = ctx.constantInt(8, type: i32)
+        call.setArgOperand(at: 0, arg8)
+        #expect(call.numArgOperands == 1)
+        #expect(call.argOperand(at: 0)?.ref == arg8.ref)
+
+        let atomicRMW = builder.buildAtomicRMW(
+            LLVMAtomicRMWBinOpAdd, alloca, ctx.constantInt(1, type: i32),
+            ordering: LLVMAtomicOrderingSequentiallyConsistent
+        )
+        #expect(atomicRMW.isAtomic)
+        let singleThread = ctx.syncScopeID("singlethread")
+        atomicRMW.syncScopeID = singleThread
+        #expect(atomicRMW.syncScopeID == singleThread)
+        atomicRMW.isAtomicSingleThread = true
+        #expect(atomicRMW.isAtomicSingleThread)
+
+        let zero = ctx.constantInt(0, type: i32)
+        let cmpVal = ctx.constantInt(1, type: i32)
+        let newVal = ctx.constantInt(2, type: i32)
+        let cmpxchg = builder.buildAtomicCmpXchg(
+            alloca, cmpVal, newVal,
+            successOrdering: LLVMAtomicOrderingSequentiallyConsistent,
+            failureOrdering: LLVMAtomicOrderingAcquire
+        )
+        #expect(cmpxchg.successOrdering == LLVMAtomicOrderingSequentiallyConsistent)
+        #expect(cmpxchg.failureOrdering == LLVMAtomicOrderingAcquire)
+        #expect(cmpxchg.isWeak == false)
+        #expect(cmpxchg.isAtomic)
+
+        let gep = builder.buildGEP(ctx.int32, alloca, indices: [zero])
+        #expect(gep.sourceElementType.ref == ctx.int32.ref)
+        gep.noWrapFlags = [.InBounds]
+        #expect(gep.noWrapFlags.contains(.InBounds))
+
+        let ret = builder.buildRet(ctx.constantInt(0, type: i32))
+        #expect(ret.previousInstruction?.ref == gep.ref)
+        #expect(gep.nextInstruction?.ref == ret.ref)
+
+        try module.verify()
+    }
+
+    @Test func invokeDestinations() throws {
+        let ctx = Context()
+        let module = Module(name: "invoke", in: ctx)
+        let i32 = ctx.int32
+        let voidFnType = ctx.functionType(returnType: ctx.void)
+        let callee = module.addFunction("callee", type: voidFnType)
+        let main = module.addFunction("main", type: ctx.functionType(returnType: i32))
+        let personality = module.addFunction(
+            "__gxx_personality_v0",
+            type: ctx.functionType(returnType: ctx.int32, parameterTypes: [ctx.int32], isVariadic: true)
+        )
+        main.personality = personality
+        let entry = main.appendBasicBlock("entry")
+        let ok = main.appendBasicBlock("ok")
+        let lpad = main.appendBasicBlock("lpad")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        let invoke = builder.buildInvoke(callee, [], then: ok, catch: lpad)
+        builder.positionAtEnd(of: ok)
+        builder.buildRet(ctx.constantInt(0, type: i32))
+        builder.positionAtEnd(of: lpad)
+        let lpType = ctx.structType(elementTypes: [ctx.pointerType(), i32])
+        let lp = builder.buildLandingPad(lpType, numClauses: 0)
+        lp.isCleanup = true
+        builder.buildResume(lp)
+
+        #expect(invoke.normalDest?.ref == ok.ref)
+        #expect(invoke.unwindDest?.ref == lpad.ref)
+        try module.verify()
+    }
+
+    @Test func intrinsicAndInlineAsm() throws {
+        let ctx = Context()
+        let module = Module(name: "intrinsic", in: ctx)
+        let i32 = ctx.int32
+
+        let smaxID = ctx.lookupIntrinsicID("llvm.smax")
+        #expect(smaxID != 0)
+        #expect(ctx.intrinsicName(smaxID)?.contains("llvm.smax") == true)
+        #expect(ctx.intrinsicType(smaxID, paramTypes: [i32, i32])?.isFunction == true)
+
+        let decl = ctx.intrinsicDeclaration(smaxID, paramTypes: [i32, i32], in: module)
+        #expect(decl != nil)
+        #expect(decl!.isIntrinsic)
+        #expect(decl!.intrinsicID == smaxID)
+        #expect(decl!.name.contains("llvm.smax"))
+        #expect(ctx.intrinsicOverloadedName(smaxID, paramTypes: [i32, i32], in: module)?.contains("i32") == true)
+
+        let asmType = ctx.functionType(returnType: i32, parameterTypes: [ctx.pointerType()])
+        let inlineAsm = ctx.constantInlineAsm(
+            asmType, asmString: "movl $1, $0", constraints: "=r,r",
+            hasSideEffects: false, isAlignStack: false
+        )
+        #expect(inlineAsm.asmString?.contains("movl") == true)
+        #expect(inlineAsm.constraintString == "=r,r")
+        #expect(inlineAsm.hasSideEffects == false)
+        #expect(inlineAsm.needsAlignedStack == false)
+        #expect(inlineAsm.dialect == LLVMInlineAsmDialectATT)
+        #expect(inlineAsm.functionType.isFunction)
+    }
+
+    @Test func constantFactoryExtensions() throws {
+        let ctx = Context()
+        let i32 = ctx.int32
+
+        let big = ctx.constantInt(arbitraryPrecision: [0x0102_0304_0506_0708], type: ctx.int64)
+        #expect(big.unsignedValue == 0x0102_0304_0506_0708)
+
+        let three = ctx.constantFP(fromBits: [0x4008_0000_0000_0000], type: ctx.double)
+        #expect(three.doubleValue == 3.0)
+
+        let structType = ctx.namedStructType(name: "S", elementTypes: [i32, i32])
+        let structConst = ctx.constantNamedStruct(
+            structType,
+            values: [ctx.constantInt(1, type: i32), ctx.constantInt(2, type: i32)]
+        )
+        #expect((structConst.aggregateElement(at: 1) as? ConstantInt)?.unsignedValue == 2)
+
+        #expect((ctx.sizeOf(i32) as? ConstantExpr) != nil)
+        #expect((ctx.alignOf(i32) as? ConstantExpr) != nil)
+        #expect(ctx.sizeOf(i32).description.contains("4"))
+
+        let ptr = ctx.pointerType()
+        let gep = ctx.constantGEP(i32, ctx.constantPointerNull(ptr), indices: [ctx.constantInt(1, type: i32)])
+        let expr = gep as? ConstantExpr
+        #expect(expr != nil)
+        #expect(expr!.opcode == LLVMGetElementPtr)
+        #expect(expr!.numIndices == 1)
+
+        let inBoundsGEP = ctx.constantInBoundsGEP(
+            i32,
+            ctx.constantPointerNull(ptr),
+            indices: [ctx.constantInt(1, type: i32)]
+        )
+        #expect(inBoundsGEP is ConstantExpr)
+    }
+
+    @Test func moduleFlagsAndTypeLookup() throws {
+        let ctx = Context()
+        let module = Module(name: "flags", in: ctx)
+
+        let node = ctx.mdNode([])
+        module.addModuleFlag(LLVMModuleFlagBehaviorWarning, key: "myflag", value: node)
+        #expect(module.moduleFlag(key: "myflag") != nil)
+        #expect(module.moduleFlags.count == 1)
+        #expect(module.moduleFlags[0].key == "myflag")
+
+        let named = ctx.namedStructType(name: "T", elementTypes: [ctx.int32])
+        #expect(module.type(named: "T")?.ref == named.ref)
+        #expect(module.type(named: "Missing") == nil)
+
+        let i32 = ctx.int32
+        #expect(i32.isSized)
+        let funcType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+        #expect(funcType.numContainedTypes == 3)
+        #expect(funcType.containedTypes.count == 3)
+
+        let version = Context.version
+        #expect(version.major >= 22)
+        #expect(ctx.mdKindID("custom.kind") != 0)
+        #expect(ctx.discardValueNames == false)
+
+        #expect(ctx.half.isFloat)
+        #expect(ctx.bfloat.isFloat)
+        #expect(ctx.fp128.isFloat)
+        #expect(ctx.x86FP80.isFloat)
+        #expect(ctx.ppcFP128.isFloat)
+        #expect(ctx.label.kind == LLVMLabelTypeKind)
+        #expect(ctx.token.kind == LLVMTokenTypeKind)
+    }
+
+    @Test func targetMachineExtensions() throws {
+        TargetMachine.initializeAllTargets()
+        #expect(!Target.all.isEmpty)
+        #expect(Target.named("x86-64") != nil)
+        #expect(TargetMachine.normalizedTriple("x86_64-pc-linux-gnu").contains("x86_64"))
+        #expect(!TargetMachine.hostCPUFeatures.isEmpty)
+
+        let ctx = Context()
+        let module = Module(name: "tm", in: ctx)
+        let main = module.addFunction("main", type: ctx.functionType(returnType: ctx.int32))
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        builder.buildRet(ctx.constantInt(42, type: ctx.int32))
+
+        let triple = TargetMachine.defaultTriple
+        let target = try Target.fromTriple(triple)
+        let options = TargetMachineOptions()
+        options.setCPU(TargetMachine.hostCPUName)
+        options.setCodeGenOptLevel(LLVMCodeGenLevelNone)
+        let tm = TargetMachine(target: target, triple: triple, options: options)
+        tm.setAsmVerbosity(true)
+        tm.setFastISel(true)
+        tm.setMachineOutliner(false)
+
+        let buffer = try tm.emitToMemoryBuffer(module: module)
+        #expect(!buffer.bytes.isEmpty)
+        #expect(buffer.bytes[0] == 0x7F)
+    }
+
+    @Test func objectRelocations() throws {
+        let ctx = Context()
+        let module = Module(name: "reloc", in: ctx)
+        let i32 = ctx.int32
+        let funcType = ctx.functionType(returnType: i32)
+        let main = module.addFunction("main", type: funcType)
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        builder.buildRet(ctx.constantInt(7, type: i32))
+
+        TargetMachine.initializeAllTargets()
+        let triple = TargetMachine.defaultTriple
+        let target = try Target.fromTriple(triple)
+        let tm = TargetMachine(target: target, triple: triple)
+        let buffer = try tm.emitToMemoryBuffer(module: module)
+
+        let binary = try Binary(buffer: buffer)
+        let sections = binary.sections()
+        #expect(!sections.isEmpty)
+        let symbols = binary.symbols()
+        #expect(symbols.contains { $0.name == "main" })
+        let copied = binary.copyMemoryBuffer()
+        #expect(!copied.bytes.isEmpty)
+        let relocs = binary.relocations(ofSectionAt: 0)
+        #expect(relocs.count >= 0)
+        if let mainSymbol = symbols.first(where: { $0.name == "main" }) {
+            binary.sectionContainsSymbol(mainSymbol)
+        }
+    }
+
+    @Test func dbgRecordTraversal() throws {
+        let ctx = Context()
+        let module = Module(name: "dbgrec", in: ctx)
+        module.isNewDbgInfoFormat = true
+        let i32 = ctx.int32
+        let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+        let main = module.addFunction("main", type: mainType)
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+
+        let dib = DIBuilder(module: module)
+        let file = dib.createFile("main.c", directory: "/tmp")
+        let cu = dib.createCompileUnit(language: LLVMDWARFSourceLanguageC, file: file, producer: "test")
+        let subType = dib.createSubroutineType(file: file, returnTypes: [])
+        let sub = dib.createFunction(
+            scope: cu,
+            name: "main",
+            linkageName: "main",
+            file: file,
+            line: 1,
+            subroutineType: subType,
+            isLocalToUnit: false
+        )
+        main.setSubprogram(sub)
+
+        let alloca = builder.buildAlloca(i32)
+        let intType = dib.createBasicType(name: "int", sizeInBits: 32, encoding: 5)
+        let varNode = dib.createAutoVariable(scope: sub, name: "x", file: file, line: 2, type: intType)
+        let expr = dib.createExpression([])
+        let loc = dib.createDebugLocation(line: 3, column: 1, scope: sub, inlinedAt: nil)
+        builder.setCurrentDebugLocation(loc)
+        builder.buildStore(main.parameter(at: 0), to: alloca)
+        dib.insertDeclareAtEnd(alloca, diVar: varNode, expr: expr, location: loc, block: entry)
+        dib.finalize()
+
+        let store = entry.lastInstruction
+        #expect(store != nil)
+        if let first = store!.firstDbgRecord {
+            #expect(!first.kindName.isEmpty)
+        }
+        _ = store!.dbgRecords
+
+        let ret = builder.buildRet(ctx.constantInt(0, type: i32))
+        builder.positionBeforeInstrAndDbgRecords(ret)
+        builder.positionBeforeDbgRecords(in: entry, before: ret)
+        try module.verify()
+    }
+
+    @Test func interpreterExecution() throws {
+        let ctx = Context()
+        let module = Module(name: "interp", in: ctx)
+        let i32 = ctx.int32
+        let main = module.addFunction("main", type: ctx.functionType(returnType: i32))
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        builder.buildRet(ctx.constantInt(42, type: i32))
+
+        ExecutionEngine.linkInInterpreter()
+        let engine = try ExecutionEngine(interpreterFor: module)
+        let result = engine.runFunction(main)
+        #expect(result?.toInt(isSigned: false) == 42)
+    }
+
+    @Test func valueMutationAndErase() throws {
+        let ctx = Context()
+        let module = Module(name: "mut", in: ctx)
+        let i32 = ctx.int32
+        let mainType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+        let main = module.addFunction("main", type: mainType)
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        let add = builder.buildAdd(main.parameter(at: 0), main.parameter(at: 1))
+        let other = ctx.constantInt(9, type: i32)
+        add.setOperand(at: 1, other)
+        #expect(add.operand(at: 1)?.ref == other.ref)
+        builder.buildRet(add)
+
+        let blockValue = entry.asValue
+        #expect(blockValue.isBasicBlock)
+        #expect(blockValue.asBasicBlock?.ref == entry.ref)
+
+        let global = module.addGlobal("g", type: i32)
+        global.isExternallyInitialized = true
+        #expect(global.isExternallyInitialized)
+
+        let tmp = module.addFunction("tmp", type: ctx.functionType(returnType: i32))
+        let tmpEntry = tmp.appendBasicBlock("e")
+        let tmpBuilder = Builder(in: ctx)
+        tmpBuilder.positionAtEnd(of: tmpEntry)
+        tmpBuilder.buildRet(ctx.constantInt(0, type: i32))
+        #expect(module.functions.contains { $0.ref == tmp.ref })
+        tmp.eraseFromParent()
+        #expect(!module.functions.contains { $0.ref == tmp.ref })
+
+        try module.verify()
+    }
+
+    @Test func supportAndErrorHelpers() {
+        let error = LLVMError.createStringError("boom")
+        #expect(LLVMError.isStringError(error))
+        LLVMConsumeError(error)
+
+        enablePrettyStackTrace()
+
+        var symbolValue = 42
+        LLVMSupport.addSymbol("my_test_symbol", value: &symbolValue)
+        #expect(LLVMSupport.searchForAddressOfSymbol("my_test_symbol") != nil)
+        #expect(LLVMSupport.loadLibraryPermanently("libm.so.6"))
+    }
 }

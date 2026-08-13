@@ -26,6 +26,22 @@ public struct SymbolInfo {
     }
 }
 
+public struct RelocationInfo {
+    public let offset: UInt64
+    public let symbol: String
+    public let type: UInt64
+    public let typeName: String
+    public let valueString: String
+
+    public init(offset: UInt64, symbol: String, type: UInt64, typeName: String, valueString: String) {
+        self.offset = offset
+        self.symbol = symbol
+        self.type = type
+        self.typeName = typeName
+        self.valueString = valueString
+    }
+}
+
 public final class Binary {
     public let ref: LLVMBinaryRef
     public let buffer: MemoryBuffer
@@ -43,6 +59,10 @@ public final class Binary {
 
     deinit {
         LLVMDisposeBinary(ref)
+    }
+
+    public func copyMemoryBuffer() -> MemoryBuffer {
+        MemoryBuffer(ref: LLVMBinaryCopyMemoryBuffer(ref)!)
     }
 
     public var type: LLVMBinaryType {
@@ -114,5 +134,70 @@ public final class Binary {
         }
         LLVMDisposeSymbolIterator(iterator)
         return result
+    }
+
+    public func relocations(ofSectionAt index: UInt32) -> [RelocationInfo] {
+        var result: [RelocationInfo] = []
+        guard let first = LLVMObjectFileCopySectionIterator(ref) else { return [] }
+        let sectionIterator = first
+        var i: UInt32 = 0
+        while i < index {
+            LLVMMoveToNextSection(sectionIterator)
+            i += 1
+        }
+        guard let relocationIterator = LLVMGetRelocations(sectionIterator) else {
+            LLVMDisposeSectionIterator(sectionIterator)
+            return []
+        }
+        while LLVMIsRelocationIteratorAtEnd(sectionIterator, relocationIterator) == 0 {
+            let typeName = LLVMGetRelocationTypeName(relocationIterator)
+            defer { LLVMDisposeMessage(UnsafeMutablePointer(mutating: typeName)) }
+            let valueString = LLVMGetRelocationValueString(relocationIterator)
+            defer { LLVMDisposeMessage(UnsafeMutablePointer(mutating: valueString)) }
+            let symbol = LLVMGetRelocationSymbol(relocationIterator)
+            let symbolName = symbol.map { String(cString: LLVMGetSymbolName($0)!) } ?? ""
+            result.append(RelocationInfo(
+                offset: LLVMGetRelocationOffset(relocationIterator),
+                symbol: symbolName,
+                type: LLVMGetRelocationType(relocationIterator),
+                typeName: String(cString: typeName!),
+                valueString: String(cString: valueString!)
+            ))
+            LLVMMoveToNextRelocation(relocationIterator)
+        }
+        LLVMDisposeRelocationIterator(relocationIterator)
+        LLVMDisposeSectionIterator(sectionIterator)
+        return result
+    }
+
+    public func sectionContainsSymbol(_ symbol: SymbolInfo) -> Bool {
+        guard let firstSection = LLVMObjectFileCopySectionIterator(ref),
+              let firstSymbol = LLVMObjectFileCopySymbolIterator(ref) else { return false }
+        let sectionIterator = firstSection
+        let symbolIterator = firstSymbol
+        var found = false
+        while LLVMObjectFileIsSymbolIteratorAtEnd(ref, symbolIterator) == 0 {
+            if LLVMGetSymbolAddress(symbolIterator) == symbol.address,
+               LLVMGetSymbolSize(symbolIterator) == symbol.size
+            {
+                found = true
+                break
+            }
+            LLVMMoveToNextSymbol(symbolIterator)
+        }
+        defer { LLVMDisposeSymbolIterator(symbolIterator) }
+        guard found else {
+            LLVMDisposeSectionIterator(sectionIterator)
+            return false
+        }
+        while LLVMObjectFileIsSectionIteratorAtEnd(ref, sectionIterator) == 0 {
+            if LLVMGetSectionContainsSymbol(sectionIterator, symbolIterator) != 0 {
+                LLVMDisposeSectionIterator(sectionIterator)
+                return true
+            }
+            LLVMMoveToNextSection(sectionIterator)
+        }
+        LLVMDisposeSectionIterator(sectionIterator)
+        return false
     }
 }

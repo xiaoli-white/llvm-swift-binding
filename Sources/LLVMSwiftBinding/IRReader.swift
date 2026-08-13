@@ -35,6 +35,16 @@ public extension Module {
         return Module(ref: outModule!, context: context)
     }
 
+    static func parseBitcodeModule(_ data: [UInt8], in context: Context) throws -> Module {
+        let memBuf = MemoryBuffer.fromBytes(data, bufferName: "bitcode")
+        var outModule: LLVMModuleRef? = nil
+        let result = LLVMGetBitcodeModuleInContext2(context.ref, memBuf.ref, &outModule)
+        if result != 0 {
+            throw LLVMError.parseFailed(message: "failed to get bitcode module")
+        }
+        return Module(ref: outModule!, context: context)
+    }
+
     static func parseBitcodeFile(_ path: String, in context: Context) throws -> Module {
         let memBuf = try MemoryBuffer.fromFile(path)
         var outModule: LLVMModuleRef? = nil

@@ -87,4 +87,44 @@ public final class Function: Value {
         get { LLVMCallConv(rawValue: LLVMGetFunctionCallConv(ref)) }
         set { LLVMSetFunctionCallConv(ref, newValue.rawValue) }
     }
+
+    public var intrinsicID: UInt32 {
+        LLVMGetIntrinsicID(ref)
+    }
+
+    public var isIntrinsic: Bool {
+        intrinsicID != 0
+    }
+
+    public var prefixData: Value? {
+        get {
+            guard let data = LLVMGetPrefixData(ref) else { return nil }
+            return Value(ref: data, context: context, module: module)
+        }
+        set {
+            LLVMSetPrefixData(ref, newValue!.ref)
+        }
+    }
+
+    public var hasPrefixData: Bool {
+        LLVMHasPrefixData(ref) != 0
+    }
+
+    public var prologueData: Value? {
+        get {
+            guard let data = LLVMGetPrologueData(ref) else { return nil }
+            return Value(ref: data, context: context, module: module)
+        }
+        set {
+            LLVMSetPrologueData(ref, newValue!.ref)
+        }
+    }
+
+    public var hasPrologueData: Bool {
+        LLVMHasPrologueData(ref) != 0
+    }
+
+    public func eraseFromParent() {
+        LLVMDeleteFunction(ref)
+    }
 }

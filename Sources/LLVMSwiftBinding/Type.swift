@@ -60,6 +60,24 @@ public class LLVMType {
         LLVMGetTypeContext(ref)
     }
 
+    public var isSized: Bool {
+        LLVMTypeIsSized(ref) != 0
+    }
+
+    public var numContainedTypes: UInt32 {
+        UInt32(LLVMGetNumContainedTypes(ref))
+    }
+
+    public var containedTypes: [LLVMType] {
+        let count = Int(numContainedTypes)
+        guard count > 0 else { return [] }
+        var refs = [LLVMTypeRef?](repeating: nil, count: count)
+        refs.withUnsafeMutableBufferPointer { buffer in
+            LLVMGetSubtypes(ref, buffer.baseAddress)
+        }
+        return refs.map { context.wrapType($0!) }
+    }
+
     public var description: String {
         let ptr = LLVMPrintTypeToString(ref)!
         defer { LLVMDisposeMessage(ptr) }

@@ -28,3 +28,38 @@ func cString(_ str: String) -> UnsafeMutablePointer<CChar> {
     }
     return ptr
 }
+
+public enum LLVMSupport {
+    @discardableResult
+    public static func loadLibraryPermanently(_ filename: String) -> Bool {
+        filename.withCString { LLVMLoadLibraryPermanently($0) == 0 }
+    }
+
+    public static func parseCommandLineOptions(_ args: [String], overview: String = "") {
+        var argv: [UnsafePointer<CChar>?] = args.map { arg in
+            arg.withCString { ptr in
+                let copy = UnsafeMutablePointer<CChar>.allocate(capacity: arg.utf8.count + 1)
+                copy.initialize(from: ptr, count: arg.utf8.count + 1)
+                return UnsafePointer(copy)
+            }
+        }
+        defer {
+            for ptr in argv {
+                ptr.map { UnsafeMutablePointer(mutating: $0) }?.deallocate()
+            }
+        }
+        overview.withCString { overviewPtr in
+            argv.withUnsafeBufferPointer { buffer in
+                LLVMParseCommandLineOptions(Int32(args.count), buffer.baseAddress, overviewPtr)
+            }
+        }
+    }
+
+    public static func searchForAddressOfSymbol(_ name: String) -> UnsafeMutableRawPointer? {
+        name.withCString { LLVMSearchForAddressOfSymbol($0) }
+    }
+
+    public static func addSymbol(_ name: String, value: UnsafeMutableRawPointer) {
+        name.withCString { LLVMAddSymbol($0, value) }
+    }
+}

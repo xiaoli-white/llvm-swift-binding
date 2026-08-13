@@ -70,6 +70,15 @@ public final class ConstantExpr: Constant {
     public var opcode: LLVMOpcode {
         LLVMGetConstOpcode(ref)
     }
+
+    public var numIndices: UInt32 {
+        LLVMGetNumIndices(ref)
+    }
+
+    public var indices: [UInt32] {
+        guard let ptr = LLVMGetIndices(ref) else { return [] }
+        return Array(UnsafeBufferPointer(start: ptr, count: Int(numIndices)))
+    }
 }
 
 public final class ConstantVector: Constant {}
