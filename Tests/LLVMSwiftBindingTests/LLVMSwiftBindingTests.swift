@@ -326,6 +326,131 @@ struct LLVMSwiftBindingTests {
         #expect(result == 42)
     }
 
+    @Test func buildCallWithValueCallee() throws {
+        let ctx = Context()
+        let module = Module(name: "call", in: ctx)
+        let i32 = ctx.int32
+        let addType = ctx.functionType(returnType: i32, parameterTypes: [i32, i32])
+        let add = module.addFunction("add", type: addType)
+        let addEntry = add.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: addEntry)
+        builder.buildRet(builder.buildAdd(add.parameter(at: 0), add.parameter(at: 1), name: "sum"))
+
+        let mainType = ctx.functionType(returnType: i32)
+        let main = module.addFunction("main", type: mainType)
+        let mainEntry = main.appendBasicBlock("entry")
+        builder.positionAtEnd(of: mainEntry)
+        let callee: Value = add
+        let result = builder.buildCall(
+            callee,
+            type: addType,
+            [ctx.constantInt(40, type: i32), ctx.constantInt(2, type: i32)],
+            name: "r"
+        )
+        builder.buildRet(result)
+
+        try module.verify()
+        let ir = module.irString
+        #expect(ir.contains("call i32 @add"))
+    }
+
+    @Test func builderSupplementaryOps() throws {
+        let ctx = Context()
+        let module = Module(name: "bops", in: ctx)
+        let i32 = ctx.int32
+        let main = module.addFunction("main", type: ctx.functionType(returnType: i32, parameterTypes: [i32]))
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+
+        let x = main.parameter(at: 0)
+        let neg = builder.buildNeg(x, name: "neg")
+        let not = builder.buildNot(x, name: "not")
+        let isNull = builder.buildIsNull(x, name: "isnull")
+        let isNotNull = builder.buildIsNotNull(x, name: "isnotnull")
+        let bin = builder.buildBinOp(.And, x, ctx.constantInt(1, type: i32), name: "binop")
+        let cast = builder.buildCast(.ZExt, isNull, to: i32, name: "cast")
+        let sum = builder.buildAdd(
+            builder.buildAdd(neg, not, name: "a"),
+            builder.buildAdd(bin, cast, name: "b"),
+            name: "sum"
+        )
+        builder.buildRet(sum)
+
+        try module.verify()
+        let ir = module.irString
+        #expect(ir.contains("sub i32 0"))
+        #expect(ir.contains("xor i32"))
+        #expect(ir.contains("icmp eq i32"))
+        #expect(ir.contains("icmp ne i32"))
+        #expect(ir.contains("and i32"))
+        #expect(ir.contains("zext i1"))
+    }
+
+    @Test func builderGEPAndStrings() throws {
+        let ctx = Context()
+        let module = Module(name: "geps", in: ctx)
+        let i32 = ctx.int32
+        let i8 = ctx.int8
+        let pair = ctx.structType(elementTypes: [i32, i8])
+        let main = module.addFunction("main", type: ctx.functionType(returnType: i32))
+        let entry = main.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+
+        let alloca = builder.buildAlloca(pair, name: "p")
+        let zero = ctx.constantInt(0, type: i32)
+        let one = ctx.constantInt(1, type: i32)
+        let fieldPtr = builder.buildStructGEP(pair, alloca, index: 1, name: "fp")
+        let field = builder.buildLoad(i8, fieldPtr, name: "f")
+        _ = builder.buildInBoundsGEP(pair, alloca, indices: [zero, one], name: "g")
+        _ = builder.buildGEPWithNoWrapFlags(pair, alloca, indices: [zero], noWrapFlags: [.InBounds], name: "gf")
+        _ = builder.buildPtrDiff(i32, alloca, alloca, name: "pd")
+        let arr = builder.buildArrayAlloca(i32, size: ctx.constantInt(8, type: i32), name: "arr")
+        _ = builder.buildInBoundsGEP(i32, arr, indices: [ctx.constantInt(2, type: i32)], name: "ap")
+        _ = builder.buildGlobalString("hi", name: "msg")
+        _ = builder.buildGlobalStringPtr("hi2", name: "msg2")
+
+        let ext = builder.buildZExt(field, to: i32, name: "e")
+        builder.buildRet(ext)
+
+        try module.verify()
+        let ir = module.irString
+        #expect(ir.contains("getelementptr inbounds"))
+        #expect(ir.contains("@msg"))
+        #expect(ir.contains("@msg2"))
+        #expect(ir.contains("alloca i32, i32 8"))
+    }
+
+    @Test func builderCallWithOperandBundlesEmpty() throws {
+        let ctx = Context()
+        let module = Module(name: "cb", in: ctx)
+        let i32 = ctx.int32
+        let fnType = ctx.functionType(returnType: i32, parameterTypes: [i32])
+        let fn = module.addFunction("f", type: fnType)
+        let fEntry = fn.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: fEntry)
+        builder.buildRet(fn.parameter(at: 0))
+
+        let main = module.addFunction("main", type: ctx.functionType(returnType: i32))
+        let mEntry = main.appendBasicBlock("entry")
+        builder.positionAtEnd(of: mEntry)
+        let callee: Value = fn
+        let result = builder.buildCallWithOperandBundles(
+            callee,
+            type: fnType,
+            [ctx.constantInt(7, type: i32)],
+            bundles: [],
+            name: "r"
+        )
+        builder.buildRet(result)
+
+        try module.verify()
+        #expect(module.irString.contains("call i32 @f"))
+    }
+
     @Test func debugInfo() throws {
         let ctx = Context()
         let module = Module(name: "debug", in: ctx)
