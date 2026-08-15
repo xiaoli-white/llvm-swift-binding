@@ -108,6 +108,10 @@ public final class Builder {
         LLVMSetInstDebugLocation(ref, inst.ref)
     }
 
+    public func addMetadataToInst(_ inst: Instruction) {
+        LLVMAddMetadataToInst(ref, inst.ref)
+    }
+
     public var defaultFPMathTag: Metadata? {
         get {
             guard let ref = LLVMBuilderGetDefaultFPMathTag(ref) else { return nil }

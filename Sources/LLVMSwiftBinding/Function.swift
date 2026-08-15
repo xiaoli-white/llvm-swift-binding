@@ -57,6 +57,14 @@ public final class Function: Value {
         LLVMSetSubprogram(ref, sp.ref)
     }
 
+    public func addTargetDependentAttribute(key: String, value: String) {
+        key.withCString { keyPtr in
+            value.withCString { valuePtr in
+                LLVMAddTargetDependentFunctionAttr(ref, keyPtr, valuePtr)
+            }
+        }
+    }
+
     public var subprogram: Metadata? {
         guard let sp = LLVMGetSubprogram(ref) else { return nil }
         return Metadata(ref: sp)

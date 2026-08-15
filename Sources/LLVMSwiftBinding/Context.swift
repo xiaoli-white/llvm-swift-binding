@@ -471,10 +471,7 @@ public final class Context {
         let ref = LLVMStructCreateNamed(ref, name)
         let type = wrapType(ref!) as! StructType
         if let elementTypes {
-            var members: [LLVMTypeRef?] = elementTypes.map(\.ref)
-            members.withUnsafeMutableBufferPointer { buffer in
-                LLVMStructSetBody(ref, buffer.baseAddress, UInt32(elementTypes.count), isPacked ? 1 : 0)
-            }
+            type.setElementTypes(elementTypes, isPacked: isPacked)
         }
         return type
     }

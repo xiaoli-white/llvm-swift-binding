@@ -191,6 +191,10 @@ public final class Argument: Value {
     public init(ref: LLVMValueRef, function: Function, module: Module) {
         super.init(ref: ref, context: function.context, module: module)
     }
+
+    public func setAlignment(_ alignment: UInt32) {
+        LLVMSetParamAlignment(ref, alignment)
+    }
 }
 
 public final class InlineAsm: Value {

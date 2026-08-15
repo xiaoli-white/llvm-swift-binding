@@ -146,6 +146,13 @@ public final class StructType: LLVMType {
         context.wrapType(LLVMStructGetTypeAtIndex(ref, index)!)
     }
 
+    public func setElementTypes(_ elementTypes: [LLVMType], isPacked: Bool = false) {
+        var members: [LLVMTypeRef?] = elementTypes.map(\.ref)
+        members.withUnsafeMutableBufferPointer { buffer in
+            LLVMStructSetBody(ref, buffer.baseAddress, UInt32(elementTypes.count), isPacked ? 1 : 0)
+        }
+    }
+
     public var isPacked: Bool {
         LLVMIsPackedStruct(ref) != 0
     }

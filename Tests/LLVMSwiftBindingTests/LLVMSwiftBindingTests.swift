@@ -2829,4 +2829,156 @@ struct LLVMSwiftBindingTests {
         #expect(Opcode(llvm: LLVMGetElementPtr) == .GetElementPtr)
         #expect(Opcode.Ret.llvm == LLVMRet)
     }
+
+    @Test func structTypeSetBody() throws {
+        let ctx = Context()
+        let module = Module(name: "structs", in: ctx)
+        let i32 = ctx.int32
+        let ptr = ctx.pointerType()
+
+        let opaque = ctx.namedStructType(name: "S")
+        #expect(opaque.isOpaque)
+        #expect(opaque.elementCount == 0)
+        opaque.setElementTypes([i32, ptr])
+        #expect(!opaque.isOpaque)
+        #expect(opaque.elementCount == 2)
+        #expect(opaque.elementType(at: 0).ref == i32.ref)
+        #expect(opaque.elementType(at: 1).ref == ptr.ref)
+        #expect(opaque.elementTypes.map(\.ref) == [i32.ref, ptr.ref])
+
+        let packed = ctx.namedStructType(name: "P")
+        packed.setElementTypes([i32, i32], isPacked: true)
+        #expect(packed.isPacked)
+
+        _ = module.addGlobal("gs", type: opaque)
+        _ = module.addGlobal("gp", type: packed)
+        let fn = module.addFunction("use", type: ctx.functionType(returnType: ctx.void))
+        let entry = fn.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        builder.buildRetVoid()
+        try module.verify()
+        let ir = module.irString
+        #expect(ir.contains("%S = type { i32, ptr }"))
+        #expect(ir.contains("%P = type <{ i32, i32 }>"))
+    }
+
+    @Test func gepIsInBoundsSetter() throws {
+        let ctx = Context()
+        let module = Module(name: "gep", in: ctx)
+        let i32 = ctx.int32
+        let fn = module.addFunction(
+            "f", type: ctx.functionType(returnType: ctx.void, parameterTypes: [ctx.pointerType()])
+        )
+        let entry = fn.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        let gep = builder.buildGEP(i32, fn.parameter(at: 0), indices: [ctx.constantInt(0, type: i32)], name: "g")
+        #expect(!gep.isInBounds)
+        gep.isInBounds = true
+        #expect(gep.isInBounds)
+        builder.buildRetVoid()
+        try module.verify()
+        #expect(module.irString.contains("getelementptr inbounds"))
+    }
+
+    @Test func functionTargetDependentAttribute() {
+        let ctx = Context()
+        let module = Module(name: "attr", in: ctx)
+        let fn = module.addFunction("f", type: ctx.functionType(returnType: ctx.int32))
+        fn.addTargetDependentAttribute(key: "foo", value: "bar")
+        let attrs = fn.attributes(at: AttributeIndex.functionIndex)
+        #expect(attrs.contains { $0.stringKind == "foo" && $0.stringValue == "bar" })
+    }
+
+    @Test func argumentSetAlignment() throws {
+        let ctx = Context()
+        let module = Module(name: "align", in: ctx)
+        let fn = module.addFunction(
+            "f", type: ctx.functionType(returnType: ctx.void, parameterTypes: [ctx.pointerType()])
+        )
+        fn.parameter(at: 0).setAlignment(8)
+        let entry = fn.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        builder.buildRetVoid()
+        try module.verify()
+        #expect(module.irString.contains("align 8"))
+    }
+
+    @Test func moduleSetDataLayoutString() {
+        let ctx = Context()
+        let module = Module(name: "dl", in: ctx)
+        module.setDataLayout("e-m:e-i64:64")
+        #expect(module.dataLayout.string.contains("e-m:e"))
+    }
+
+    @Test func builderAddMetadataToInst() throws {
+        let ctx = Context()
+        let module = Module(name: "meta", in: ctx)
+        let di = DIBuilder(module: module)
+        let file = di.createFile("meta.swift", directory: "/tmp")
+        let cu = di.createCompileUnit(
+            language: LLVMDWARFSourceLanguageSwift,
+            file: file,
+            producer: "swiftc",
+            isOptimized: false
+        )
+        let subType = di.createSubroutineType(file: file, returnTypes: [])
+        let fn = module.addFunction("f", type: ctx.functionType(returnType: ctx.void))
+        let entry = fn.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        let sp = di.createFunction(
+            scope: cu,
+            name: "f",
+            file: file,
+            line: 1,
+            subroutineType: subType,
+            isLocalToUnit: true,
+            isDefinition: true,
+            scopeLine: 1
+        )
+        let loc = di.createDebugLocation(line: 42, column: 7, scope: sp)
+        builder.setCurrentDebugLocation(loc)
+        let alloca = builder.buildAlloca(ctx.int32, name: "x")
+        builder.addMetadataToInst(alloca)
+        builder.buildRetVoid()
+        #expect(alloca.debugLocLine == 42)
+        #expect(alloca.debugLocColumn == 7)
+    }
+
+    @Test func globalIFuncSetResolver() throws {
+        let ctx = Context()
+        let module = Module(name: "ifunc", in: ctx)
+        let type = ctx.functionType(returnType: ctx.int32)
+        let r1 = module.addFunction("r1", type: type)
+        let r2 = module.addFunction("r2", type: type)
+        let ifunc = module.addIFunc("fptr", type: type, resolver: r1)
+        #expect(ifunc.resolver?.ref == r1.ref)
+        ifunc.setResolver(r2)
+        #expect(ifunc.resolver?.ref == r2.ref)
+    }
+
+    @Test func catchPadSetParentCatchSwitch() {
+        let ctx = Context()
+        let module = Module(name: "eh", in: ctx)
+        let fn = module.addFunction("f", type: ctx.functionType(returnType: ctx.void))
+        let entry = fn.appendBasicBlock("entry")
+        let other = fn.appendBasicBlock("other")
+        let eh = fn.appendBasicBlock("eh")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+        let cs1 = builder.buildCatchSwitch(parentPad: nil, unwind: nil, numHandlers: 0, name: "cs1")
+        builder.positionAtEnd(of: other)
+        let cs2 = builder.buildCatchSwitch(parentPad: nil, unwind: nil, numHandlers: 0, name: "cs2")
+        builder.positionAtEnd(of: eh)
+        let cp = builder.buildCatchPad(parentPad: cs1, args: [], name: "cp")
+        let irBefore = module.irString
+        #expect(irBefore.contains("catchpad within %cs1"))
+        cp.setParentCatchSwitch(cs2)
+        let irAfter = module.irString
+        #expect(irAfter.contains("catchpad within %cs2"))
+        #expect(!irAfter.contains("catchpad within %cs1"))
+    }
 }

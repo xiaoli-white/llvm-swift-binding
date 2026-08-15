@@ -297,4 +297,10 @@ public final class Module {
         get { LLVMIsNewDbgInfoFormat(ref) != 0 }
         set { LLVMSetIsNewDbgInfoFormat(ref, newValue ? 1 : 0) }
     }
+
+    public func setDataLayout(_ layout: String) {
+        layout.withCString { layoutPtr in
+            LLVMSetDataLayout(ref, layoutPtr)
+        }
+    }
 }

@@ -25,6 +25,10 @@ public final class GlobalIFunc: Value {
         return Value(ref: ref, context: context, module: module)
     }
 
+    public func setResolver(_ resolver: Function) {
+        LLVMSetGlobalIFuncResolver(ref, resolver.ref)
+    }
+
     public var valueType: LLVMType {
         context.wrapType(LLVMGlobalGetValueType(ref))
     }

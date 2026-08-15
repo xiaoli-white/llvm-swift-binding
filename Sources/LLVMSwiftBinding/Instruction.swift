@@ -523,6 +523,11 @@ public final class GetElementPtrInst: Instruction {
         context.wrapType(LLVMGetGEPSourceElementType(ref)!)
     }
 
+    public var isInBounds: Bool {
+        get { LLVMIsInBounds(ref) != 0 }
+        set { LLVMSetIsInBounds(ref, newValue ? 1 : 0) }
+    }
+
     public var noWrapFlags: GEPNoWrapFlags {
         get { GEPNoWrapFlags(rawValue: LLVMGEPGetNoWrapFlags(ref)) }
         set { LLVMGEPSetNoWrapFlags(ref, newValue.rawValue) }
@@ -651,7 +656,11 @@ public final class LandingPadInst: Instruction {
     }
 }
 
-public final class CatchPadInst: Instruction {}
+public final class CatchPadInst: Instruction {
+    public func setParentCatchSwitch(_ catchSwitch: CatchSwitchInst) {
+        LLVMSetParentCatchSwitch(ref, catchSwitch.ref)
+    }
+}
 
 public final class CleanupPadInst: Instruction {}
 
