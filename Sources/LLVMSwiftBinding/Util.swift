@@ -36,7 +36,7 @@ public enum LLVMSupport {
     }
 
     public static func parseCommandLineOptions(_ args: [String], overview: String = "") {
-        var argv: [UnsafePointer<CChar>?] = args.map { arg in
+        let argv: [UnsafePointer<CChar>?] = args.map { arg in
             arg.withCString { ptr in
                 let copy = UnsafeMutablePointer<CChar>.allocate(capacity: arg.utf8.count + 1)
                 copy.initialize(from: ptr, count: arg.utf8.count + 1)

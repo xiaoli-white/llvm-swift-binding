@@ -67,8 +67,8 @@ public final class ConstantDataArray: Constant {
 }
 
 public final class ConstantExpr: Constant {
-    public var opcode: LLVMOpcode {
-        LLVMGetConstOpcode(ref)
+    public var opcode: Opcode {
+        Opcode(llvm: LLVMGetConstOpcode(ref))!
     }
 
     public var numIndices: UInt32 {

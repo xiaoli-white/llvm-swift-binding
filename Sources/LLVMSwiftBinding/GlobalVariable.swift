@@ -33,9 +33,9 @@ public final class GlobalVariable: Value {
         set { LLVMSetGlobalConstant(ref, newValue ? 1 : 0) }
     }
 
-    public var tlsModel: LLVMThreadLocalMode {
-        get { LLVMGetThreadLocalMode(ref) }
-        set { LLVMSetThreadLocalMode(ref, newValue) }
+    public var tlsModel: ThreadLocalMode {
+        get { ThreadLocalMode(llvm: LLVMGetThreadLocalMode(ref))! }
+        set { LLVMSetThreadLocalMode(ref, newValue.llvm) }
     }
 
     public var section: String {
@@ -46,14 +46,14 @@ public final class GlobalVariable: Value {
         set { LLVMSetSection(ref, newValue) }
     }
 
-    public var unnamedAddress: LLVMUnnamedAddr {
-        get { LLVMGetUnnamedAddress(ref) }
-        set { LLVMSetUnnamedAddress(ref, newValue) }
+    public var unnamedAddress: UnnamedAddr {
+        get { UnnamedAddr(llvm: LLVMGetUnnamedAddress(ref))! }
+        set { LLVMSetUnnamedAddress(ref, newValue.llvm) }
     }
 
-    public var linkage: LLVMLinkage {
-        get { LLVMGetLinkage(ref) }
-        set { LLVMSetLinkage(ref, newValue) }
+    public var linkage: Linkage {
+        get { Linkage(llvm: LLVMGetLinkage(ref))! }
+        set { LLVMSetLinkage(ref, newValue.llvm) }
     }
 
     public var alignment: UInt32 {

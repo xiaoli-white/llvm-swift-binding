@@ -29,8 +29,8 @@ public final class DataLayout {
         return String(cString: ptr)
     }
 
-    public var byteOrder: LLVMByteOrdering {
-        LLVMByteOrder(ref)
+    public var byteOrder: ByteOrdering {
+        ByteOrdering(llvm: LLVMByteOrder(ref))!
     }
 
     public var pointerSize: UInt32 {

@@ -252,9 +252,9 @@ public final class Module {
         }
     }
 
-    public func addModuleFlag(_ behavior: LLVMModuleFlagBehavior, key: String, value: Metadata) {
+    public func addModuleFlag(_ behavior: ModuleFlagBehavior, key: String, value: Metadata) {
         key.withCString { keyPtr in
-            LLVMAddModuleFlag(ref, behavior, keyPtr, key.utf8.count, value.ref)
+            LLVMAddModuleFlag(ref, behavior.llvm, keyPtr, key.utf8.count, value.ref)
         }
     }
 
@@ -267,13 +267,13 @@ public final class Module {
         return Metadata(ref: ref)
     }
 
-    public var moduleFlags: [(behavior: LLVMModuleFlagBehavior, key: String, value: Metadata)] {
+    public var moduleFlags: [(behavior: ModuleFlagBehavior, key: String, value: Metadata)] {
         var length = 0
         guard let entries = LLVMCopyModuleFlagsMetadata(ref, &length) else { return [] }
         defer { LLVMDisposeModuleFlagsMetadata(entries) }
-        var result: [(LLVMModuleFlagBehavior, String, Metadata)] = []
+        var result: [(ModuleFlagBehavior, String, Metadata)] = []
         for i in 0 ..< UInt32(length) {
-            let behavior = LLVMModuleFlagEntriesGetFlagBehavior(entries, i)
+            let behavior = ModuleFlagBehavior(llvm: LLVMModuleFlagEntriesGetFlagBehavior(entries, i))!
             var keyLength = 0
             let key: String
             if let ptr = LLVMModuleFlagEntriesGetKey(entries, i, &keyLength) {

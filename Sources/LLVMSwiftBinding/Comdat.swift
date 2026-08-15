@@ -7,9 +7,9 @@ public final class Comdat {
         self.ref = ref
     }
 
-    public var selectionKind: LLVMComdatSelectionKind {
-        get { LLVMGetComdatSelectionKind(ref) }
-        set { LLVMSetComdatSelectionKind(ref, newValue) }
+    public var selectionKind: ComdatSelectionKind {
+        get { ComdatSelectionKind(llvm: LLVMGetComdatSelectionKind(ref))! }
+        set { LLVMSetComdatSelectionKind(ref, newValue.llvm) }
     }
 }
 

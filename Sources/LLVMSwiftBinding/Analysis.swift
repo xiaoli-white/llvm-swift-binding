@@ -1,15 +1,9 @@
 import cLLVM
 
-public enum VerifierFailureAction {
-    public static let abortProcess = LLVMAbortProcessAction
-    public static let printMessage = LLVMPrintMessageAction
-    public static let returnStatus = LLVMReturnStatusAction
-}
-
 public extension Module {
-    func verify(action: LLVMVerifierFailureAction = LLVMReturnStatusAction) throws {
+    func verify(action: VerifierFailureAction = .ReturnStatus) throws {
         var errMsg: UnsafeMutablePointer<CChar>?
-        let result = LLVMVerifyModule(ref, action, &errMsg)
+        let result = LLVMVerifyModule(ref, action.llvm, &errMsg)
         if result != 0 {
             let msg = errorMessage(from: errMsg)
             throw LLVMError.parseFailed(message: "verification failed: \(msg)")
@@ -18,7 +12,7 @@ public extension Module {
 }
 
 public extension Function {
-    func verify(action: LLVMVerifierFailureAction = LLVMReturnStatusAction) -> Bool {
-        LLVMVerifyFunction(ref, action) == 0
+    func verify(action: VerifierFailureAction = .ReturnStatus) -> Bool {
+        LLVMVerifyFunction(ref, action.llvm) == 0
     }
 }

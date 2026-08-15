@@ -59,14 +59,14 @@ public class Value {
         LLVMIsDeclaration(ref) != 0
     }
 
-    public var visibility: LLVMVisibility {
-        get { LLVMGetVisibility(ref) }
-        set { LLVMSetVisibility(ref, newValue) }
+    public var visibility: Visibility {
+        get { Visibility(llvm: LLVMGetVisibility(ref))! }
+        set { LLVMSetVisibility(ref, newValue.llvm) }
     }
 
-    public var dllStorageClass: LLVMDLLStorageClass {
-        get { LLVMGetDLLStorageClass(ref) }
-        set { LLVMSetDLLStorageClass(ref, newValue) }
+    public var dllStorageClass: DLLStorageClass {
+        get { DLLStorageClass(llvm: LLVMGetDLLStorageClass(ref))! }
+        set { LLVMSetDLLStorageClass(ref, newValue.llvm) }
     }
 
     public var description: String {
@@ -75,40 +75,40 @@ public class Value {
         return String(cString: ptr)
     }
 
-    public var valueKind: LLVMValueKind {
-        LLVMGetValueKind(ref)
+    public var valueKind: ValueKind {
+        ValueKind(llvm: LLVMGetValueKind(ref))!
     }
 
     public var kindName: String {
         switch valueKind {
-        case LLVMArgumentValueKind: "argument"
-        case LLVMBasicBlockValueKind: "basic-block"
-        case LLVMMemoryUseValueKind: "memory-use"
-        case LLVMMemoryDefValueKind: "memory-def"
-        case LLVMMemoryPhiValueKind: "memory-phi"
-        case LLVMFunctionValueKind: "function"
-        case LLVMGlobalAliasValueKind: "global-alias"
-        case LLVMGlobalIFuncValueKind: "global-ifunc"
-        case LLVMGlobalVariableValueKind: "global-variable"
-        case LLVMBlockAddressValueKind: "block-address"
-        case LLVMConstantExprValueKind: "constant-expr"
-        case LLVMConstantArrayValueKind: "constant-array"
-        case LLVMConstantStructValueKind: "constant-struct"
-        case LLVMConstantVectorValueKind: "constant-vector"
-        case LLVMUndefValueValueKind: "undef"
-        case LLVMConstantAggregateZeroValueKind: "constant-aggregate-zero"
-        case LLVMConstantDataArrayValueKind: "constant-data-array"
-        case LLVMConstantDataVectorValueKind: "constant-data-vector"
-        case LLVMConstantIntValueKind: "constant-int"
-        case LLVMConstantFPValueKind: "constant-fp"
-        case LLVMConstantPointerNullValueKind: "constant-pointer-null"
-        case LLVMConstantTokenNoneValueKind: "constant-token-none"
-        case LLVMMetadataAsValueValueKind: "metadata-as-value"
-        case LLVMInlineAsmValueKind: "inline-asm"
-        case LLVMInstructionValueKind: "instruction"
-        case LLVMPoisonValueValueKind: "poison"
-        case LLVMConstantTargetNoneValueKind: "constant-target-none"
-        default: "unknown"
+        case .Argument: "argument"
+        case .BasicBlock: "basic-block"
+        case .MemoryUse: "memory-use"
+        case .MemoryDef: "memory-def"
+        case .MemoryPhi: "memory-phi"
+        case .Function: "function"
+        case .GlobalAlias: "global-alias"
+        case .GlobalIFunc: "global-ifunc"
+        case .GlobalVariable: "global-variable"
+        case .BlockAddress: "block-address"
+        case .ConstantExpr: "constant-expr"
+        case .ConstantArray: "constant-array"
+        case .ConstantStruct: "constant-struct"
+        case .ConstantVector: "constant-vector"
+        case .UndefValue: "undef"
+        case .ConstantAggregateZero: "constant-aggregate-zero"
+        case .ConstantDataArray: "constant-data-array"
+        case .ConstantDataVector: "constant-data-vector"
+        case .ConstantInt: "constant-int"
+        case .ConstantFP: "constant-fp"
+        case .ConstantPointerNull: "constant-pointer-null"
+        case .ConstantTokenNone: "constant-token-none"
+        case .MetadataAsValue: "metadata-as-value"
+        case .InlineAsm: "inline-asm"
+        case .Instruction: "instruction"
+        case .PoisonValue: "poison"
+        case .ConstantTargetNone: "constant-target-none"
+        case .ConstantPtrAuth: "constant-ptr-auth"
         }
     }
 
@@ -208,8 +208,8 @@ public final class InlineAsm: Value {
         return String(decoding: bytes, as: UTF8.self)
     }
 
-    public var dialect: LLVMInlineAsmDialect {
-        LLVMGetInlineAsmDialect(ref)
+    public var dialect: InlineAsmDialect {
+        InlineAsmDialect(llvm: LLVMGetInlineAsmDialect(ref))!
     }
 
     public var hasSideEffects: Bool {

@@ -383,7 +383,7 @@ public final class Context {
         constraints: String,
         hasSideEffects: Bool,
         isAlignStack: Bool,
-        dialect: LLVMInlineAsmDialect = LLVMInlineAsmDialectATT,
+        dialect: InlineAsmDialect = .ATT,
         canThrow: Bool = false
     ) -> InlineAsm {
         let ref = asmString.withCString { asmPtr in
@@ -396,7 +396,7 @@ public final class Context {
                     constraints.utf8.count,
                     hasSideEffects ? 1 : 0,
                     isAlignStack ? 1 : 0,
-                    dialect,
+                    dialect.llvm,
                     canThrow ? 1 : 0
                 )
             }

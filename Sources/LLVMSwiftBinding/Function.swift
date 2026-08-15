@@ -82,14 +82,14 @@ public final class Function: Value {
         }
     }
 
-    public var linkage: LLVMLinkage {
-        get { LLVMGetLinkage(ref) }
-        set { LLVMSetLinkage(ref, newValue) }
+    public var linkage: Linkage {
+        get { Linkage(llvm: LLVMGetLinkage(ref))! }
+        set { LLVMSetLinkage(ref, newValue.llvm) }
     }
 
-    public var callConv: LLVMCallConv {
-        get { LLVMCallConv(rawValue: LLVMGetFunctionCallConv(ref)) }
-        set { LLVMSetFunctionCallConv(ref, newValue.rawValue) }
+    public var callConv: CallConv {
+        get { CallConv(llvm: LLVMGetFunctionCallConv(ref)) }
+        set { LLVMSetFunctionCallConv(ref, newValue.llvm) }
     }
 
     public var intrinsicID: UInt32 {

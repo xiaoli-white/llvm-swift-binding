@@ -151,7 +151,7 @@ struct LLVMSwiftBindingTests {
         builder.positionAtEnd(of: loop)
         let i = builder.buildPhi(i32, name: "i")
         i.addIncoming(ctx.constantInt(0, type: i32), from: entry)
-        let cond = builder.buildICmp(LLVMIntSLT, i, ctx.constantInt(42, type: i32), name: "cond")
+        let cond = builder.buildICmp(.SLT, i, ctx.constantInt(42, type: i32), name: "cond")
         builder.buildCondBr(cond, then: body, else: done)
 
         builder.positionAtEnd(of: body)
@@ -379,7 +379,7 @@ struct LLVMSwiftBindingTests {
         let neg = builder.buildNeg(x, name: "neg")
         let not = builder.buildNot(x, name: "not")
         let isNull = builder.buildIsNull(x, name: "isnull")
-        let isNotNull = builder.buildIsNotNull(x, name: "isnotnull")
+        builder.buildIsNotNull(x, name: "isnotnull")
         let bin = builder.buildBinOp(.And, x, ctx.constantInt(1, type: i32), name: "binop")
         let cast = builder.buildCast(.ZExt, isNull, to: i32, name: "cast")
         let sum = builder.buildAdd(
@@ -556,7 +556,7 @@ struct LLVMSwiftBindingTests {
         let i32 = ctx.int32
 
         let comdat = module.getOrInsertComdat("mycomdat")
-        comdat.selectionKind = LLVMAnyComdatSelectionKind
+        comdat.selectionKind = .Any
 
         let answer = module.addGlobal("answer", type: i32)
         answer.initializer = ctx.constantInt(42, type: i32)
@@ -737,10 +737,10 @@ struct LLVMSwiftBindingTests {
 
         let ptr = builder.buildAlloca(i32, name: "ptr")
         builder.buildStore(ctx.constantInt(0, type: i32), to: ptr)
-        builder.buildFence(ordering: LLVMAtomicOrderingSequentiallyConsistent)
+        builder.buildFence(ordering: .SequentiallyConsistent)
         let old = builder.buildAtomicRMW(
-            LLVMAtomicRMWBinOpAdd, ptr, ctx.constantInt(1, type: i32),
-            ordering: LLVMAtomicOrderingSequentiallyConsistent
+            .Add, ptr, ctx.constantInt(1, type: i32),
+            ordering: .SequentiallyConsistent
         )
         builder.buildStore(old, to: ptr)
 
@@ -1020,7 +1020,7 @@ struct LLVMSwiftBindingTests {
         #expect(entry.terminator is ReturnInst)
 
         #expect(sum.isConstant == false)
-        #expect(sum.valueKind == LLVMInstructionValueKind)
+        #expect(sum.valueKind == .Instruction)
         #expect(ctx.constantInt(42, type: i32).isConstant)
         #expect(ctx.constantNull(i32).isNull)
         #expect(ctx.undef(i32).isUndef)
@@ -1257,12 +1257,12 @@ struct LLVMSwiftBindingTests {
         builder.buildRet(call)
 
         #expect(!call.isTailCall)
-        #expect(call.callConvention == LLVMCCallConv)
+        #expect(call.callConvention == .C)
         call.isTailCall = true
         #expect(call.isTailCall)
-        #expect(call.tailCallKind == LLVMTailCallKindTail)
-        call.callConvention = LLVMFastCallConv
-        #expect(call.callConvention == LLVMFastCallConv)
+        #expect(call.tailCallKind == .Tail)
+        call.callConvention = .Fast
+        #expect(call.callConvention == .Fast)
         let ir = module.irString
         #expect(ir.contains("tail call"))
         #expect(ir.contains("fastcc"))
@@ -1420,8 +1420,8 @@ struct LLVMSwiftBindingTests {
         #expect(gv.section == ".data")
         gv.isThreadLocal = true
         #expect(gv.isThreadLocal)
-        gv.unnamedAddress = LLVMGlobalUnnamedAddr
-        #expect(gv.unnamedAddress == LLVMGlobalUnnamedAddr)
+        gv.unnamedAddress = .Global
+        #expect(gv.unnamedAddress == .Global)
 
         let ir = module.irString
         #expect(ir.contains("thread_local"))
@@ -1866,26 +1866,26 @@ struct LLVMSwiftBindingTests {
 
         let load = builder.buildLoad(i32, gv, name: "l")
         load.isVolatile = true
-        load.ordering = LLVMAtomicOrderingAcquire
+        load.ordering = .Acquire
         #expect(load.isVolatile)
-        #expect(load.ordering == LLVMAtomicOrderingAcquire)
+        #expect(load.ordering == .Acquire)
 
         let store = builder.buildStore(ctx.constantInt(1, type: i32), to: gv)
         store.isVolatile = true
         #expect(store.isVolatile)
 
         let rmw = builder.buildAtomicRMW(
-            LLVMAtomicRMWBinOpXchg,
+            .Xchg,
             gv,
             ctx.constantInt(5, type: i32),
-            ordering: LLVMAtomicOrderingSequentiallyConsistent
+            ordering: .SequentiallyConsistent
         )
         #expect(!rmw.isVolatile)
-        #expect(rmw.binOp == LLVMAtomicRMWBinOpXchg)
-        rmw.binOp = LLVMAtomicRMWBinOpAdd
-        #expect(rmw.binOp == LLVMAtomicRMWBinOpAdd)
+        #expect(rmw.binOp == .Xchg)
+        rmw.binOp = .Add
+        #expect(rmw.binOp == .Add)
 
-        builder.buildFence(ordering: LLVMAtomicOrderingRelease)
+        builder.buildFence(ordering: .Release)
 
         builder.buildRet(ctx.constantInt(0, type: i32))
         let ir = module.irString
@@ -1917,12 +1917,12 @@ struct LLVMSwiftBindingTests {
         #expect(!gv.isDeclaration)
 
         let hiddenFn = module.addFunction("hiddenfn", type: fnType)
-        hiddenFn.visibility = LLVMHiddenVisibility
-        #expect(hiddenFn.visibility == LLVMHiddenVisibility)
+        hiddenFn.visibility = .Hidden
+        #expect(hiddenFn.visibility == .Hidden)
 
         let importFn = module.addFunction("importfn", type: fnType)
-        importFn.dllStorageClass = LLVMDLLImportStorageClass
-        #expect(importFn.dllStorageClass == LLVMDLLImportStorageClass)
+        importFn.dllStorageClass = .DLLImport
+        #expect(importFn.dllStorageClass == .DLLImport)
         let ir = module.irString
         #expect(ir.contains("hidden"))
         #expect(ir.contains("dllimport"))
@@ -1958,9 +1958,9 @@ struct LLVMSwiftBindingTests {
         #expect(f.gc == nil)
         f.gc = "shadow-stack"
         #expect(f.gc == "shadow-stack")
-        #expect(f.linkage == LLVMExternalLinkage)
-        f.linkage = LLVMInternalLinkage
-        #expect(f.linkage == LLVMInternalLinkage)
+        #expect(f.linkage == .External)
+        f.linkage = .Internal
+        #expect(f.linkage == .Internal)
         let ir = module.irString
         #expect(ir.contains("internal"))
         #expect(ir.contains("shadow-stack"))
@@ -2047,18 +2047,18 @@ struct LLVMSwiftBindingTests {
 
         let notExpr = ctx.constantNot(five)
         if let ce = notExpr as? ConstantExpr {
-            #expect(ce.opcode == LLVMXor)
+            #expect(ce.opcode == .Xor)
         }
 
         let xorExpr = ctx.constantXor(five, three)
         if let ce = xorExpr as? ConstantExpr {
-            #expect(ce.opcode == LLVMXor)
+            #expect(ce.opcode == .Xor)
             #expect(ce.numOperands == 2)
         }
 
         let intToPtr = ctx.constantIntToPtr(five, to: ctx.pointerType())
         if let ce = intToPtr as? ConstantExpr {
-            #expect(ce.opcode == LLVMIntToPtr)
+            #expect(ce.opcode == .IntToPtr)
         }
     }
 
@@ -2074,8 +2074,8 @@ struct LLVMSwiftBindingTests {
         #expect(gv.isGlobalConstant)
 
         gv.isThreadLocal = true
-        gv.tlsModel = LLVMLocalDynamicTLSModel
-        #expect(gv.tlsModel == LLVMLocalDynamicTLSModel)
+        gv.tlsModel = .LocalDynamic
+        #expect(gv.tlsModel == .LocalDynamic)
 
         let ir = module.irString
         #expect(ir.contains("constant"))
@@ -2168,9 +2168,9 @@ struct LLVMSwiftBindingTests {
         builder.positionAtEnd(of: entry)
         builder.buildRetVoid()
 
-        #expect(f.callConv == LLVMCCallConv)
-        f.callConv = LLVMFastCallConv
-        #expect(f.callConv == LLVMFastCallConv)
+        #expect(f.callConv == .C)
+        f.callConv = .Fast
+        #expect(f.callConv == .Fast)
         let ir = module.irString
         #expect(ir.contains("fastcc"))
         try module.verify()
@@ -2187,12 +2187,12 @@ struct LLVMSwiftBindingTests {
         builder.positionAtEnd(of: entry)
         let p0 = main.parameter(at: 0)
         let add = builder.buildAdd(p0, main.parameter(at: 1), name: "s")
-        let icmp = builder.buildICmp(LLVMIntEQ, p0, main.parameter(at: 1), name: "c")
+        let icmp = builder.buildICmp(.EQ, p0, main.parameter(at: 1), name: "c")
         builder.buildRet(add)
 
-        #expect(add.opcode == LLVMAdd)
+        #expect(add.opcode == .Add)
         #expect(add.opcodeName == "add")
-        #expect(icmp.opcode == LLVMICmp)
+        #expect(icmp.opcode == .ICmp)
         #expect(icmp.opcodeName == "icmp")
         #expect(entry.terminator?.opcodeName == "ret")
 
@@ -2237,8 +2237,8 @@ struct LLVMSwiftBindingTests {
             gv,
             ctx.constantInt(0, type: i32),
             ctx.constantInt(1, type: i32),
-            successOrdering: LLVMAtomicOrderingAcquire,
-            failureOrdering: LLVMAtomicOrderingMonotonic
+            successOrdering: .Acquire,
+            failureOrdering: .Monotonic
         )
         builder.buildRet(ctx.constantInt(0, type: i32))
 
@@ -2304,12 +2304,12 @@ struct LLVMSwiftBindingTests {
         let entry = main.appendBasicBlock("entry")
         let builder = Builder(in: ctx)
         builder.positionAtEnd(of: entry)
-        let icmp = builder.buildICmp(LLVMIntSGT, main.parameter(at: 0), main.parameter(at: 1), name: "i")
-        let fcmp = builder.buildFCmp(LLVMRealOGT, main.parameter(at: 2), main.parameter(at: 3), name: "f")
+        let icmp = builder.buildICmp(.SGT, main.parameter(at: 0), main.parameter(at: 1), name: "i")
+        let fcmp = builder.buildFCmp(.OGT, main.parameter(at: 2), main.parameter(at: 3), name: "f")
         builder.buildRet(ctx.constantInt(0, type: i32))
 
-        #expect(icmp.predicate == LLVMIntSGT)
-        #expect(fcmp.predicate == LLVMRealOGT)
+        #expect(icmp.predicate == .SGT)
+        #expect(fcmp.predicate == .OGT)
         try module.verify()
     }
 
@@ -2353,7 +2353,7 @@ struct LLVMSwiftBindingTests {
         #expect(alloca.allocatedType.isInteger)
         #expect(alloca.allocatedType.ref == ctx.int32.ref)
 
-        let icmp = builder.buildICmp(LLVMIntSGT, main.parameter(at: 0), main.parameter(at: 1))
+        let icmp = builder.buildICmp(.SGT, main.parameter(at: 0), main.parameter(at: 1))
         icmp.isSameSign = true
         #expect(icmp.isSameSign)
 
@@ -2384,8 +2384,8 @@ struct LLVMSwiftBindingTests {
         #expect(call.argOperand(at: 0)?.ref == arg8.ref)
 
         let atomicRMW = builder.buildAtomicRMW(
-            LLVMAtomicRMWBinOpAdd, alloca, ctx.constantInt(1, type: i32),
-            ordering: LLVMAtomicOrderingSequentiallyConsistent
+            .Add, alloca, ctx.constantInt(1, type: i32),
+            ordering: .SequentiallyConsistent
         )
         #expect(atomicRMW.isAtomic)
         let singleThread = ctx.syncScopeID("singlethread")
@@ -2399,11 +2399,11 @@ struct LLVMSwiftBindingTests {
         let newVal = ctx.constantInt(2, type: i32)
         let cmpxchg = builder.buildAtomicCmpXchg(
             alloca, cmpVal, newVal,
-            successOrdering: LLVMAtomicOrderingSequentiallyConsistent,
-            failureOrdering: LLVMAtomicOrderingAcquire
+            successOrdering: .SequentiallyConsistent,
+            failureOrdering: .Acquire
         )
-        #expect(cmpxchg.successOrdering == LLVMAtomicOrderingSequentiallyConsistent)
-        #expect(cmpxchg.failureOrdering == LLVMAtomicOrderingAcquire)
+        #expect(cmpxchg.successOrdering == .SequentiallyConsistent)
+        #expect(cmpxchg.failureOrdering == .Acquire)
         #expect(cmpxchg.isWeak == false)
         #expect(cmpxchg.isAtomic)
 
@@ -2476,7 +2476,7 @@ struct LLVMSwiftBindingTests {
         #expect(inlineAsm.constraintString == "=r,r")
         #expect(inlineAsm.hasSideEffects == false)
         #expect(inlineAsm.needsAlignedStack == false)
-        #expect(inlineAsm.dialect == LLVMInlineAsmDialectATT)
+        #expect(inlineAsm.dialect == .ATT)
         #expect(inlineAsm.functionType.isFunction)
     }
 
@@ -2505,7 +2505,7 @@ struct LLVMSwiftBindingTests {
         let gep = ctx.constantGEP(i32, ctx.constantPointerNull(ptr), indices: [ctx.constantInt(1, type: i32)])
         let expr = gep as? ConstantExpr
         #expect(expr != nil)
-        #expect(expr!.opcode == LLVMGetElementPtr)
+        #expect(expr!.opcode == .GetElementPtr)
         #expect(expr!.numIndices == 1)
 
         let inBoundsGEP = ctx.constantInBoundsGEP(
@@ -2521,7 +2521,7 @@ struct LLVMSwiftBindingTests {
         let module = Module(name: "flags", in: ctx)
 
         let node = ctx.mdNode([])
-        module.addModuleFlag(LLVMModuleFlagBehaviorWarning, key: "myflag", value: node)
+        module.addModuleFlag(.Warning, key: "myflag", value: node)
         #expect(module.moduleFlag(key: "myflag") != nil)
         #expect(module.moduleFlags.count == 1)
         #expect(module.moduleFlags[0].key == "myflag")
@@ -2546,8 +2546,8 @@ struct LLVMSwiftBindingTests {
         #expect(ctx.fp128.isFloat)
         #expect(ctx.x86FP80.isFloat)
         #expect(ctx.ppcFP128.isFloat)
-        #expect(ctx.label.kind == LLVMLabelTypeKind)
-        #expect(ctx.token.kind == LLVMTokenTypeKind)
+        #expect(ctx.label.kind == .Label)
+        #expect(ctx.token.kind == .Token)
     }
 
     @Test func targetMachineExtensions() throws {
@@ -2607,7 +2607,7 @@ struct LLVMSwiftBindingTests {
         let relocs = binary.relocations(ofSectionAt: 0)
         #expect(relocs.count >= 0)
         if let mainSymbol = symbols.first(where: { $0.name == "main" }) {
-            binary.sectionContainsSymbol(mainSymbol)
+            #expect(binary.sectionContainsSymbol(mainSymbol))
         }
     }
 
@@ -2737,7 +2737,7 @@ struct LLVMSwiftBindingTests {
         #expect(fn.functionType.parameterTypes[1].ref == ctx.double.ref)
         #expect(fn.functionType.isVariadic)
         #expect(fn.functionType.ref == fnType.ref)
-        #expect(fn.type.kind == LLVMPointerTypeKind)
+        #expect(fn.type.kind == .Pointer)
 
         let global = module.addGlobal("g", type: i32)
         #expect(global.valueType.ref == i32.ref)
@@ -2745,5 +2745,88 @@ struct LLVMSwiftBindingTests {
         let resolver = module.addFunction("resolver", type: ctx.functionType(returnType: i32))
         let ifunc = module.addIFunc("fptr", type: ctx.functionType(returnType: i32), resolver: resolver)
         #expect(ifunc.valueType.isFunction)
+    }
+
+    @Test func enumRoundTrips() throws {
+        let ctx = Context()
+        let module = Module(name: "enumrt", in: ctx)
+        let i32 = ctx.int32
+        let f = module.addFunction(
+            "f",
+            type: ctx.functionType(returnType: i32, parameterTypes: [i32, i32, ctx.double, ctx.double])
+        )
+        let entry = f.appendBasicBlock("entry")
+        let builder = Builder(in: ctx)
+        builder.positionAtEnd(of: entry)
+
+        f.linkage = .LinkOnceODR
+        #expect(f.linkage == .LinkOnceODR)
+        f.linkage = .AvailableExternally
+        #expect(f.linkage == .AvailableExternally)
+        f.visibility = .Protected
+        #expect(f.visibility == .Protected)
+        f.dllStorageClass = .DLLExport
+        #expect(f.dllStorageClass == .DLLExport)
+        f.callConv = .Custom(42)
+        #expect(f.callConv == .Custom(42))
+        f.callConv = .Swift
+        #expect(f.callConv == .Swift)
+
+        let gv = module.addGlobal("g", type: i32)
+        gv.unnamedAddress = .Local
+        #expect(gv.unnamedAddress == .Local)
+        gv.tlsModel = .InitialExec
+        #expect(gv.tlsModel == .InitialExec)
+
+        let icmp = builder.buildICmp(.ULE, f.parameter(at: 0), f.parameter(at: 1), name: "c")
+        let fcmp = builder.buildFCmp(.UEQ, f.parameter(at: 2), f.parameter(at: 3), name: "c")
+        builder.buildRet(ctx.constantInt(0, type: i32))
+        #expect(icmp.predicate == .ULE)
+        #expect(icmp.opcode == .ICmp)
+        #expect(icmp.opcodeName == "icmp")
+        #expect(fcmp.predicate == .UEQ)
+
+        let comdat = module.getOrInsertComdat("c")
+        comdat.selectionKind = .SameSize
+        #expect(comdat.selectionKind == .SameSize)
+
+        let dl = DataLayout(string: "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128")
+        module.dataLayout = dl
+        #expect(dl.byteOrder == .LittleEndian)
+
+        try module.verify()
+        try module.verify(action: .PrintMessage)
+        _ = f.verify(action: .ReturnStatus)
+
+        #expect(Linkage.External.llvm == LLVMExternalLinkage)
+        #expect(Linkage.External.rawValue == 0)
+        #expect(Linkage(llvm: LLVMInternalLinkage) == .Internal)
+        #expect(Linkage.Common.rawValue == 14)
+        #expect(Visibility.Hidden.rawValue == 1)
+        #expect(UnnamedAddr.Global.rawValue == 2)
+        #expect(ThreadLocalMode.NotThreadLocal.rawValue == 0)
+        #expect(DLLStorageClass.Default.rawValue == 0)
+        #expect(CallConv.C.llvm == 0)
+        #expect(CallConv(llvm: 96) == .AMDGPUES)
+        #expect(InlineAsmDialect.Intel.llvm == LLVMInlineAsmDialectIntel)
+        #expect(IntPredicate.EQ.rawValue == 32)
+        #expect(IntPredicate(llvm: LLVMIntSLE) == .SLE)
+        #expect(RealPredicate.True.rawValue == 15)
+        #expect(TailCallKind.MustTail.llvm == LLVMTailCallKindMustTail)
+        #expect(AtomicOrdering.AcquireRelease.rawValue == 6)
+        #expect(AtomicRMWBinOp.FMaximum.llvm == LLVMAtomicRMWBinOpFMaximum)
+        #expect(ComdatSelectionKind.ExactMatch.llvm == LLVMExactMatchComdatSelectionKind)
+        #expect(ModuleFlagBehavior.AppendUnique.rawValue == 5)
+        #expect(ByteOrdering.BigEndian.rawValue == 0)
+        #expect(VerifierFailureAction.ReturnStatus.llvm == LLVMReturnStatusAction)
+        #expect(TypeKind.TargetExt.rawValue == 20)
+        #expect(TypeKind(llvm: LLVMVoidTypeKind) == .Void)
+        #expect(ValueKind.ConstantPtrAuth.rawValue == 27)
+        #expect(ValueKind(llvm: LLVMPoisonValueValueKind) == .PoisonValue)
+        #expect(Opcode.CatchSwitch.rawValue == 65)
+        #expect(Opcode.PtrToAddr.rawValue == 69)
+        #expect(Opcode.AddrSpaceCast.rawValue == 60)
+        #expect(Opcode(llvm: LLVMGetElementPtr) == .GetElementPtr)
+        #expect(Opcode.Ret.llvm == LLVMRet)
     }
 }

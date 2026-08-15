@@ -12,72 +12,72 @@ public struct OperandBundle {
 
 public class Instruction: Value {
     public static func wrap(_ ref: LLVMValueRef, context: Context, module: Module?) -> Instruction {
-        let inst: Instruction = switch LLVMGetInstructionOpcode(ref) {
-        case LLVMRet:
+        let inst: Instruction = switch Opcode(llvm: LLVMGetInstructionOpcode(ref))! {
+        case .Ret:
             ReturnInst(ref: ref, context: context, module: module)
-        case LLVMBr:
+        case .Br:
             BranchInst(ref: ref, context: context, module: module)
-        case LLVMSwitch:
+        case .Switch:
             SwitchInst(ref: ref, context: context, module: module)
-        case LLVMIndirectBr:
+        case .IndirectBr:
             IndirectBrInst(ref: ref, context: context, module: module)
-        case LLVMInvoke:
+        case .Invoke:
             InvokeInst(ref: ref, context: context, module: module)
-        case LLVMUnreachable:
+        case .Unreachable:
             UnreachableInst(ref: ref, context: context, module: module)
-        case LLVMAlloca:
+        case .Alloca:
             AllocaInst(ref: ref, context: context, module: module)
-        case LLVMLoad:
+        case .Load:
             LoadInst(ref: ref, context: context, module: module)
-        case LLVMStore:
+        case .Store:
             StoreInst(ref: ref, context: context, module: module)
-        case LLVMGetElementPtr:
+        case .GetElementPtr:
             GetElementPtrInst(ref: ref, context: context, module: module)
-        case LLVMICmp:
+        case .ICmp:
             ICmpInst(ref: ref, context: context, module: module)
-        case LLVMFCmp:
+        case .FCmp:
             FCmpInst(ref: ref, context: context, module: module)
-        case LLVMCall:
+        case .Call:
             CallInst(ref: ref, context: context, module: module)
-        case LLVMCallBr:
+        case .CallBr:
             CallBrInst(ref: ref, context: context, module: module)
-        case LLVMPHI:
+        case .PHI:
             PHINode(ref: ref, context: context, module: module)
-        case LLVMSelect:
+        case .Select:
             SelectInst(ref: ref, context: context, module: module)
-        case LLVMVAArg:
+        case .VAArg:
             VAArgInst(ref: ref, context: context, module: module)
-        case LLVMExtractElement:
+        case .ExtractElement:
             ExtractElementInst(ref: ref, context: context, module: module)
-        case LLVMInsertElement:
+        case .InsertElement:
             InsertElementInst(ref: ref, context: context, module: module)
-        case LLVMShuffleVector:
+        case .ShuffleVector:
             ShuffleVectorInst(ref: ref, context: context, module: module)
-        case LLVMExtractValue:
+        case .ExtractValue:
             ExtractValueInst(ref: ref, context: context, module: module)
-        case LLVMInsertValue:
+        case .InsertValue:
             InsertValueInst(ref: ref, context: context, module: module)
-        case LLVMFreeze:
+        case .Freeze:
             FreezeInst(ref: ref, context: context, module: module)
-        case LLVMFence:
+        case .Fence:
             FenceInst(ref: ref, context: context, module: module)
-        case LLVMAtomicCmpXchg:
+        case .AtomicCmpXchg:
             AtomicCmpXchgInst(ref: ref, context: context, module: module)
-        case LLVMAtomicRMW:
+        case .AtomicRMW:
             AtomicRMWInst(ref: ref, context: context, module: module)
-        case LLVMResume:
+        case .Resume:
             ResumeInst(ref: ref, context: context, module: module)
-        case LLVMLandingPad:
+        case .LandingPad:
             LandingPadInst(ref: ref, context: context, module: module)
-        case LLVMCleanupRet:
+        case .CleanupRet:
             CleanupRetInst(ref: ref, context: context, module: module)
-        case LLVMCatchRet:
+        case .CatchRet:
             CatchRetInst(ref: ref, context: context, module: module)
-        case LLVMCatchPad:
+        case .CatchPad:
             CatchPadInst(ref: ref, context: context, module: module)
-        case LLVMCleanupPad:
+        case .CleanupPad:
             CleanupPadInst(ref: ref, context: context, module: module)
-        case LLVMCatchSwitch:
+        case .CatchSwitch:
             CatchSwitchInst(ref: ref, context: context, module: module)
         default:
             BinaryOperator(ref: ref, context: context, module: module)
@@ -173,74 +173,86 @@ public class Instruction: Value {
         LLVMSetInstrParamAlignment(ref, index, alignment)
     }
 
-    public var opcode: LLVMOpcode {
-        LLVMGetInstructionOpcode(ref)
+    public var opcode: Opcode {
+        Opcode(llvm: LLVMGetInstructionOpcode(ref))!
     }
 
     public var opcodeName: String {
         switch opcode {
-        case LLVMRet: "ret"
-        case LLVMBr: "br"
-        case LLVMSwitch: "switch"
-        case LLVMIndirectBr: "indirectbr"
-        case LLVMInvoke: "invoke"
-        case LLVMUnreachable: "unreachable"
-        case LLVMAlloca: "alloca"
-        case LLVMLoad: "load"
-        case LLVMStore: "store"
-        case LLVMGetElementPtr: "getelementptr"
-        case LLVMICmp: "icmp"
-        case LLVMFCmp: "fcmp"
-        case LLVMCall: "call"
-        case LLVMCallBr: "callbr"
-        case LLVMPHI: "phi"
-        case LLVMSelect: "select"
-        case LLVMAdd: "add"
-        case LLVMSub: "sub"
-        case LLVMMul: "mul"
-        case LLVMUDiv: "udiv"
-        case LLVMSDiv: "sdiv"
-        case LLVMURem: "urem"
-        case LLVMSRem: "srem"
-        case LLVMShl: "shl"
-        case LLVMLShr: "lshr"
-        case LLVMAShr: "ashr"
-        case LLVMAnd: "and"
-        case LLVMOr: "or"
-        case LLVMXor: "xor"
-        case LLVMFAdd: "fadd"
-        case LLVMFSub: "fsub"
-        case LLVMFMul: "fmul"
-        case LLVMFDiv: "fdiv"
-        case LLVMFRem: "frem"
-        case LLVMFNeg: "fneg"
-        case LLVMTrunc: "trunc"
-        case LLVMZExt: "zext"
-        case LLVMSExt: "sext"
-        case LLVMFPToUI: "fptoui"
-        case LLVMFPToSI: "fptosi"
-        case LLVMUIToFP: "uitofp"
-        case LLVMSIToFP: "sitofp"
-        case LLVMFPTrunc: "fptrunc"
-        case LLVMFPExt: "fpext"
-        case LLVMPtrToInt: "ptrtoint"
-        case LLVMIntToPtr: "inttoptr"
-        case LLVMBitCast: "bitcast"
-        case LLVMAddrSpaceCast: "addrspacecast"
-        case LLVMExtractElement: "extractelement"
-        case LLVMInsertElement: "insertelement"
-        case LLVMShuffleVector: "shufflevector"
-        case LLVMExtractValue: "extractvalue"
-        case LLVMInsertValue: "insertvalue"
-        case LLVMFreeze: "freeze"
-        case LLVMLandingPad: "landingpad"
-        default: "unknown"
+        case .Ret: "ret"
+        case .Br: "br"
+        case .Switch: "switch"
+        case .IndirectBr: "indirectbr"
+        case .Invoke: "invoke"
+        case .Unreachable: "unreachable"
+        case .CallBr: "callbr"
+        case .FNeg: "fneg"
+        case .Add: "add"
+        case .FAdd: "fadd"
+        case .Sub: "sub"
+        case .FSub: "fsub"
+        case .Mul: "mul"
+        case .FMul: "fmul"
+        case .UDiv: "udiv"
+        case .SDiv: "sdiv"
+        case .FDiv: "fdiv"
+        case .URem: "urem"
+        case .SRem: "srem"
+        case .FRem: "frem"
+        case .Shl: "shl"
+        case .LShr: "lshr"
+        case .AShr: "ashr"
+        case .And: "and"
+        case .Or: "or"
+        case .Xor: "xor"
+        case .Alloca: "alloca"
+        case .Load: "load"
+        case .Store: "store"
+        case .GetElementPtr: "getelementptr"
+        case .Trunc: "trunc"
+        case .ZExt: "zext"
+        case .SExt: "sext"
+        case .FPToUI: "fptoui"
+        case .FPToSI: "fptosi"
+        case .UIToFP: "uitofp"
+        case .SIToFP: "sitofp"
+        case .FPTrunc: "fptrunc"
+        case .FPExt: "fpext"
+        case .PtrToInt: "ptrtoint"
+        case .PtrToAddr: "ptrtoaddr"
+        case .IntToPtr: "inttoptr"
+        case .BitCast: "bitcast"
+        case .AddrSpaceCast: "addrspacecast"
+        case .ICmp: "icmp"
+        case .FCmp: "fcmp"
+        case .PHI: "phi"
+        case .Call: "call"
+        case .Select: "select"
+        case .UserOp1: "userop1"
+        case .UserOp2: "userop2"
+        case .VAArg: "va_arg"
+        case .ExtractElement: "extractelement"
+        case .InsertElement: "insertelement"
+        case .ShuffleVector: "shufflevector"
+        case .ExtractValue: "extractvalue"
+        case .InsertValue: "insertvalue"
+        case .Freeze: "freeze"
+        case .Fence: "fence"
+        case .AtomicCmpXchg: "cmpxchg"
+        case .AtomicRMW: "atomicrmw"
+        case .Resume: "resume"
+        case .LandingPad: "landingpad"
+        case .CleanupRet: "cleanupret"
+        case .CatchRet: "catchret"
+        case .CatchPad: "catchpad"
+        case .CleanupPad: "cleanuppad"
+        case .CatchSwitch: "catchswitch"
         }
     }
 
     public var operandBundles: [OperandBundle] {
-        let opcode = LLVMGetInstructionOpcode(ref)
-        guard opcode == LLVMCall || opcode == LLVMInvoke || opcode == LLVMCallBr else { return [] }
+        let opcode = Opcode(llvm: LLVMGetInstructionOpcode(ref))!
+        guard opcode == .Call || opcode == .Invoke || opcode == .CallBr else { return [] }
         let count = LLVMGetNumOperandBundles(ref)
         guard count > 0 else { return [] }
         var result: [OperandBundle] = []
@@ -353,9 +365,9 @@ public final class LoadInst: Instruction {
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    public var ordering: LLVMAtomicOrdering {
-        get { LLVMGetOrdering(ref) }
-        set { LLVMSetOrdering(ref, newValue) }
+    public var ordering: AtomicOrdering {
+        get { AtomicOrdering(llvm: LLVMGetOrdering(ref))! }
+        set { LLVMSetOrdering(ref, newValue.llvm) }
     }
 }
 
@@ -365,9 +377,9 @@ public final class StoreInst: Instruction {
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    public var ordering: LLVMAtomicOrdering {
-        get { LLVMGetOrdering(ref) }
-        set { LLVMSetOrdering(ref, newValue) }
+    public var ordering: AtomicOrdering {
+        get { AtomicOrdering(llvm: LLVMGetOrdering(ref))! }
+        set { LLVMSetOrdering(ref, newValue.llvm) }
     }
 }
 
@@ -413,8 +425,8 @@ public final class SwitchInst: Instruction {
 }
 
 public final class ICmpInst: Instruction {
-    public var predicate: LLVMIntPredicate {
-        LLVMGetICmpPredicate(ref)
+    public var predicate: IntPredicate {
+        IntPredicate(llvm: LLVMGetICmpPredicate(ref))!
     }
 
     public var isSameSign: Bool {
@@ -424,8 +436,8 @@ public final class ICmpInst: Instruction {
 }
 
 public final class FCmpInst: Instruction {
-    public var predicate: LLVMRealPredicate {
-        LLVMGetFCmpPredicate(ref)
+    public var predicate: RealPredicate {
+        RealPredicate(llvm: LLVMGetFCmpPredicate(ref))!
     }
 }
 
@@ -435,14 +447,14 @@ public final class CallInst: Instruction {
         set { LLVMSetTailCall(ref, newValue ? 1 : 0) }
     }
 
-    public var tailCallKind: LLVMTailCallKind {
-        get { LLVMGetTailCallKind(ref) }
-        set { LLVMSetTailCallKind(ref, newValue) }
+    public var tailCallKind: TailCallKind {
+        get { TailCallKind(llvm: LLVMGetTailCallKind(ref))! }
+        set { LLVMSetTailCallKind(ref, newValue.llvm) }
     }
 
-    public var callConvention: LLVMCallConv {
-        get { LLVMCallConv(rawValue: LLVMGetInstructionCallConv(ref)) }
-        set { LLVMSetInstructionCallConv(ref, newValue.rawValue) }
+    public var callConvention: CallConv {
+        get { CallConv(llvm: LLVMGetInstructionCallConv(ref)) }
+        set { LLVMSetInstructionCallConv(ref, newValue.llvm) }
     }
 
     public var calledValue: Value? {
@@ -537,14 +549,14 @@ public final class AtomicRMWInst: Instruction {
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    public var ordering: LLVMAtomicOrdering {
-        get { LLVMGetOrdering(ref) }
-        set { LLVMSetOrdering(ref, newValue) }
+    public var ordering: AtomicOrdering {
+        get { AtomicOrdering(llvm: LLVMGetOrdering(ref))! }
+        set { LLVMSetOrdering(ref, newValue.llvm) }
     }
 
-    public var binOp: LLVMAtomicRMWBinOp {
-        get { LLVMGetAtomicRMWBinOp(ref) }
-        set { LLVMSetAtomicRMWBinOp(ref, newValue) }
+    public var binOp: AtomicRMWBinOp {
+        get { AtomicRMWBinOp(llvm: LLVMGetAtomicRMWBinOp(ref))! }
+        set { LLVMSetAtomicRMWBinOp(ref, newValue.llvm) }
     }
 }
 
@@ -554,14 +566,14 @@ public final class AtomicCmpXchgInst: Instruction {
         set { LLVMSetVolatile(ref, newValue ? 1 : 0) }
     }
 
-    public var successOrdering: LLVMAtomicOrdering {
-        get { LLVMGetCmpXchgSuccessOrdering(ref) }
-        set { LLVMSetCmpXchgSuccessOrdering(ref, newValue) }
+    public var successOrdering: AtomicOrdering {
+        get { AtomicOrdering(llvm: LLVMGetCmpXchgSuccessOrdering(ref))! }
+        set { LLVMSetCmpXchgSuccessOrdering(ref, newValue.llvm) }
     }
 
-    public var failureOrdering: LLVMAtomicOrdering {
-        get { LLVMGetCmpXchgFailureOrdering(ref) }
-        set { LLVMSetCmpXchgFailureOrdering(ref, newValue) }
+    public var failureOrdering: AtomicOrdering {
+        get { AtomicOrdering(llvm: LLVMGetCmpXchgFailureOrdering(ref))! }
+        set { LLVMSetCmpXchgFailureOrdering(ref, newValue.llvm) }
     }
 
     public var isWeak: Bool {

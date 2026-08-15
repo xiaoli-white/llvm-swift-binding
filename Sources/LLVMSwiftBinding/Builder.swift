@@ -369,8 +369,8 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildICmp(_ predicate: LLVMIntPredicate, _ lhs: Value, _ rhs: Value, name: String = "") -> ICmpInst {
-        let inst = LLVMBuildICmp(ref, predicate, lhs.ref, rhs.ref, name)!
+    public func buildICmp(_ predicate: IntPredicate, _ lhs: Value, _ rhs: Value, name: String = "") -> ICmpInst {
+        let inst = LLVMBuildICmp(ref, predicate.llvm, lhs.ref, rhs.ref, name)!
         return ICmpInst(ref: inst, context: context, module: currentModule)
     }
 
@@ -387,8 +387,8 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildFCmp(_ predicate: LLVMRealPredicate, _ lhs: Value, _ rhs: Value, name: String = "") -> FCmpInst {
-        let inst = LLVMBuildFCmp(ref, predicate, lhs.ref, rhs.ref, name)!
+    public func buildFCmp(_ predicate: RealPredicate, _ lhs: Value, _ rhs: Value, name: String = "") -> FCmpInst {
+        let inst = LLVMBuildFCmp(ref, predicate.llvm, lhs.ref, rhs.ref, name)!
         return FCmpInst(ref: inst, context: context, module: currentModule)
     }
 
@@ -665,38 +665,38 @@ public final class Builder {
     }
 
     @discardableResult
-    public func buildFence(ordering: LLVMAtomicOrdering, singleThread: Bool = false, name: String = "") -> FenceInst {
-        let inst = LLVMBuildFence(ref, ordering, singleThread ? 1 : 0, name)!
+    public func buildFence(ordering: AtomicOrdering, singleThread: Bool = false, name: String = "") -> FenceInst {
+        let inst = LLVMBuildFence(ref, ordering.llvm, singleThread ? 1 : 0, name)!
         return FenceInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
-    public func buildFenceSyncScope(ordering: LLVMAtomicOrdering, scope: UInt32, name: String = "") -> FenceInst {
-        let inst = LLVMBuildFenceSyncScope(ref, ordering, scope, name)!
+    public func buildFenceSyncScope(ordering: AtomicOrdering, scope: UInt32, name: String = "") -> FenceInst {
+        let inst = LLVMBuildFenceSyncScope(ref, ordering.llvm, scope, name)!
         return FenceInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
     public func buildAtomicRMW(
-        _ op: LLVMAtomicRMWBinOp,
+        _ op: AtomicRMWBinOp,
         _ ptr: Value,
         _ value: Value,
-        ordering: LLVMAtomicOrdering,
+        ordering: AtomicOrdering,
         singleThread: Bool = false
     ) -> AtomicRMWInst {
-        let inst = LLVMBuildAtomicRMW(ref, op, ptr.ref, value.ref, ordering, singleThread ? 1 : 0)!
+        let inst = LLVMBuildAtomicRMW(ref, op.llvm, ptr.ref, value.ref, ordering.llvm, singleThread ? 1 : 0)!
         return AtomicRMWInst(ref: inst, context: context, module: currentModule)
     }
 
     @discardableResult
     public func buildAtomicRMWSyncScope(
-        _ op: LLVMAtomicRMWBinOp,
+        _ op: AtomicRMWBinOp,
         _ ptr: Value,
         _ value: Value,
-        ordering: LLVMAtomicOrdering,
+        ordering: AtomicOrdering,
         scope: UInt32
     ) -> AtomicRMWInst {
-        let inst = LLVMBuildAtomicRMWSyncScope(ref, op, ptr.ref, value.ref, ordering, scope)!
+        let inst = LLVMBuildAtomicRMWSyncScope(ref, op.llvm, ptr.ref, value.ref, ordering.llvm, scope)!
         return AtomicRMWInst(ref: inst, context: context, module: currentModule)
     }
 
@@ -705,8 +705,8 @@ public final class Builder {
         _ ptr: Value,
         _ cmp: Value,
         _ new: Value,
-        successOrdering: LLVMAtomicOrdering,
-        failureOrdering: LLVMAtomicOrdering,
+        successOrdering: AtomicOrdering,
+        failureOrdering: AtomicOrdering,
         singleThread: Bool = false
     ) -> AtomicCmpXchgInst {
         let inst = LLVMBuildAtomicCmpXchg(
@@ -714,8 +714,8 @@ public final class Builder {
             ptr.ref,
             cmp.ref,
             new.ref,
-            successOrdering,
-            failureOrdering,
+            successOrdering.llvm,
+            failureOrdering.llvm,
             singleThread ? 1 : 0
         )!
         return AtomicCmpXchgInst(ref: inst, context: context, module: currentModule)

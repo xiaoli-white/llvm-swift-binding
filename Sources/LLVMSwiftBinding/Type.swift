@@ -9,23 +9,21 @@ public class LLVMType {
         self.context = context
     }
 
-    public var kind: LLVMTypeKind {
-        LLVMGetTypeKind(ref)
+    public var kind: TypeKind {
+        TypeKind(llvm: LLVMGetTypeKind(ref))!
     }
 
     public var isVoid: Bool {
-        kind == LLVMVoidTypeKind
+        kind == .Void
     }
 
     public var isInteger: Bool {
-        kind == LLVMIntegerTypeKind
+        kind == .Integer
     }
 
     public var isFloat: Bool {
         switch kind {
-        case LLVMHalfTypeKind, LLVMFloatTypeKind, LLVMDoubleTypeKind,
-             LLVMX86_FP80TypeKind, LLVMFP128TypeKind, LLVMPPC_FP128TypeKind,
-             LLVMBFloatTypeKind:
+        case .Half, .Float, .Double, .X86FP80, .FP128, .PPCFP128, .BFloat:
             true
         default:
             false
@@ -33,27 +31,27 @@ public class LLVMType {
     }
 
     public var isFunction: Bool {
-        kind == LLVMFunctionTypeKind
+        kind == .Function
     }
 
     public var isStruct: Bool {
-        kind == LLVMStructTypeKind
+        kind == .Struct
     }
 
     public var isArray: Bool {
-        kind == LLVMArrayTypeKind
+        kind == .Array
     }
 
     public var isPointer: Bool {
-        kind == LLVMPointerTypeKind
+        kind == .Pointer
     }
 
     public var isVector: Bool {
-        kind == LLVMVectorTypeKind || kind == LLVMScalableVectorTypeKind
+        kind == .Vector || kind == .ScalableVector
     }
 
     public var isTargetExt: Bool {
-        kind == LLVMTargetExtTypeKind
+        kind == .TargetExt
     }
 
     public var contextRef: LLVMContextRef {
@@ -186,7 +184,7 @@ public final class VectorType: LLVMType {
     }
 
     public var isScalable: Bool {
-        kind == LLVMScalableVectorTypeKind
+        kind == .ScalableVector
     }
 }
 
