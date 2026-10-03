@@ -12,7 +12,12 @@ let package = Package(
     targets: [
         .systemLibrary(
             name: "cLLVM",
-            path: "Sources/cLLVM"
+            path: "Sources/cLLVM",
+            pkgConfig: "llvm",
+            providers: [
+                .brew(["llvm"]),
+                .apt(["llvm-dev"]),
+            ]
         ),
         .target(
             name: "LLVMSwiftBinding",

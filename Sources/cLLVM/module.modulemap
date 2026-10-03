@@ -1,5 +1,5 @@
 module cLLVM [extern_c] [system] {
-    umbrella "/usr/include/llvm-c"
+    header "llvm_c_forwarding.h"
     link "LLVM-22"
     export *
 }
